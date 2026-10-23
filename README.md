@@ -94,6 +94,7 @@ flowchart LR
 | **Report** | Score, grade, penalty breakdown, MTTA/MTTR, dead letters, and **what to fix next**: missed actions, wrong actions, MTTA over grace, SLA windows. | `buildFixList` over the stored action timeline |
 | **Re-run** | One click back into the same scenario. Same seed, so the next score is comparable. | Deterministic engine |
 | **Library** | Each scenario can be verified: a reference solution (one required action per tick) is replayed through the scoring engine and reports *winnable*, the resolve tick, and the par score. | `verifyScenario` |
+| **Builder** | Name, seed, tick limit, baseline metrics (error rate, latency, queue depth), required actions, and the event schedule. A draft with required actions becomes a drill that can actually be won. | `validateScenario` + DRAFT → READY validation |
 
 ---
 
@@ -278,7 +279,8 @@ is watching.
 
 Session tokens are 32 random bytes, stored only as a SHA-256 hash. Cookies are `httpOnly`,
 `SameSite=Lax`, and `Secure` in production. Sessions live in the database and expire after 7 days.
-A shared report is a random 16-byte token in `share_links`; it never exposes a session.
+A shared report is a random 16-byte token in `share_links`; it never exposes a session and
+expires 30 days after the link is created.
 
 ---
 
@@ -288,7 +290,7 @@ The suite is layered so each layer proves something the others cannot:
 
 | Layer | What it proves | Where |
 | --- | --- | --- |
-| Unit (334 tests) | Pure rules: state transitions, delivery retries, HMAC, scoring, builder limits, rate limiting, i18n parity, determinism | `tests/*.test.ts` |
+| Unit (337 tests) | Pure rules: state transitions, delivery retries, HMAC, scoring, builder limits, rate limiting, i18n parity, determinism | `tests/*.test.ts` |
 | Browser e2e (8 tests) | The real app over HTTP and a real database: sign-in, throttling, the clock, the console, mobile menu, guest report | `tests/e2e/app.e2e.mjs` |
 | TestSprite suite | Behaviour on every PR: breadth across roles, states and error codes; assertion depth on engine output | TestSprite portal, gated per PR |
 

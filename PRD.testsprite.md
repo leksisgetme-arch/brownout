@@ -126,7 +126,7 @@ start a drill.
 | FR-B2 | Tick limit | 10 and 600 | 9 and 601 → `E-BLD-TICKS` |
 | FR-B3 | Events | 20 events | 21 → `E-BLD-EVENTS` |
 | FR-B4 | Payload size | 4096 bytes | 4097 → `E-BLD-PAYLOAD` |
-| FR-B5 | Payload JSON | Valid JSON object | Broken JSON → `E-BLD-JSON` |
+| FR-B5 | Payload JSON | Valid JSON array of events | Broken JSON or an object → `E-BLD-JSON` |
 | FR-B6 | Failure mode | The five allowed values | Anything else → `E-BLD-FAILURE` |
 | FR-B7 | Target | `sandbox://brownout/receiver` only | Any URL or host → `E-BLD-TARGET` |
 | FR-B8 | Hostile text | `<script>alert(1)</script>` is stored and shown escaped | No dialog, no script execution |

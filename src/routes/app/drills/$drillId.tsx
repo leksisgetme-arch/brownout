@@ -125,7 +125,10 @@ function DrillPage() {
 	const [error, setError] = useState<{ code: string; message: string } | null>(
 		null,
 	);
-	const [token, setToken] = useState<string | null>(null);
+	const [share, setShare] = useState<{
+		token: string;
+		expiresAt: string;
+	} | null>(null);
 	const [feedback, setFeedback] = useState<{
 		action: ActionType;
 		correct: boolean;
@@ -157,8 +160,8 @@ function DrillPage() {
 	const motionOff = search.motion === "off";
 
 	const shareUrl =
-		token && typeof window !== "undefined"
-			? `${window.location.origin}/report/${token}`
+		share && typeof window !== "undefined"
+			? `${window.location.origin}/report/${share.token}`
 			: null;
 
 	async function run(
@@ -229,7 +232,7 @@ function DrillPage() {
 		setError(null);
 		try {
 			const result = await createShareLinkFn({ data: { drillId: drill.id } });
-			if (result.ok) setToken(result.data.token);
+			if (result.ok) setShare(result.data);
 			else
 				setError({
 					code: result.code,
@@ -540,10 +543,20 @@ function DrillPage() {
 									</a>
 								</p>
 							) : null}
-							{drill.state === "EVALUATED" && token ? (
+							{share ? (
+								<p
+									className="text-[11px] text-ink-3"
+									data-testid="share-link-expiry"
+								>
+									{t("report.shareExpiry", {
+										date: formatDateTime(share.expiresAt, locale),
+									})}
+								</p>
+							) : null}
+							{drill.state === "EVALUATED" && share ? (
 								<Link
 									to="/report/$token"
-									params={{ token }}
+									params={{ token: share.token }}
 									data-testid="open-report"
 									className="inline-block text-xs text-amber underline"
 								>

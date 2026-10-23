@@ -962,23 +962,48 @@ export async function buildDrillDetail(
 }
 
 /** Report view: read-only, no session required, no action buttons (FR-A4). */
+/** Share links are public report URLs, so they expire. Thirty days is long
+ * enough for a retro and short enough that a leaked link stops working. */
+const SHARE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 export async function createShareLink(
 	drillId: string,
-): Promise<ServerResult<{ token: string }>> {
+): Promise<ServerResult<{ token: string; expiresAt: string }>> {
 	await requireCommanderUser();
 	const db = getDb();
 
 	const [existing] = await db
-		.select({ token: schema.shareLinks.token })
+		.select({
+			token: schema.shareLinks.token,
+			expiresAt: schema.shareLinks.expiresAt,
+		})
 		.from(schema.shareLinks)
 		.where(eq(schema.shareLinks.drillId, drillId))
 		.limit(1);
 
-	if (existing) return okResult({ token: existing.token });
+	if (existing) {
+		// Older rows predate the expiry rule; give them one on the next share.
+		if (existing.expiresAt) {
+			return okResult({
+				token: existing.token,
+				expiresAt: existing.expiresAt.toISOString(),
+			});
+		}
+		const expiresAt = new Date(Date.now() + SHARE_LINK_TTL_MS);
+		await db
+			.update(schema.shareLinks)
+			.set({ expiresAt })
+			.where(eq(schema.shareLinks.token, existing.token));
+		return okResult({
+			token: existing.token,
+			expiresAt: expiresAt.toISOString(),
+		});
+	}
 
 	const token = randomBytes(16).toString("hex");
-	await db.insert(schema.shareLinks).values({ drillId, token });
-	return okResult({ token });
+	const expiresAt = new Date(Date.now() + SHARE_LINK_TTL_MS);
+	await db.insert(schema.shareLinks).values({ drillId, token, expiresAt });
+	return okResult({ token, expiresAt: expiresAt.toISOString() });
 }
 
 export async function getReportByToken(

@@ -65,6 +65,14 @@ export interface CreateScenarioInput {
 	seed: number;
 	maxTicks: number;
 	eventsJson: string;
+	/** Baseline metrics the drill starts from; the builder exposes these. */
+	metrics?: {
+		errorRate: number;
+		latencyMs: number;
+		queueDepth: number;
+	};
+	/** Actions the operator must take to resolve the drill. */
+	requiredActions?: string[];
 }
 
 export async function listScenarios(): Promise<ScenarioListItem[]> {
@@ -200,6 +208,8 @@ export async function updateScenario(
 		seed: input.seed,
 		maxTicks: input.maxTicks,
 		events: events.data,
+		metrics: input.metrics,
+		requiredActions: input.requiredActions,
 		curated: false,
 	});
 	if (!validated.ok) {
@@ -254,6 +264,8 @@ export async function createScenario(
 		seed: input.seed,
 		maxTicks: input.maxTicks,
 		events: events.data,
+		metrics: input.metrics,
+		requiredActions: input.requiredActions,
 		curated: false,
 	});
 
