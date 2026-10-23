@@ -274,10 +274,9 @@ export async function listDrills(): Promise<DrillListItem[]> {
 				.where(
 					and(
 						inArray(schema.drillEvents.drillId, ids),
-						inArray(schema.drillEvents.type, [
-							"drill.resolved",
-							"drill.failed",
-						]),
+						// MTTR is time to recovery. A failed drill never recovered, so it
+						// has no MTTR; the failure tick is not a recovery time.
+						eq(schema.drillEvents.type, "drill.resolved"),
 					),
 				)
 		: [];
@@ -296,9 +295,10 @@ export async function listDrills(): Promise<DrillListItem[]> {
 			);
 		}
 	}
-	const closedAt = new Map<string, number>();
+	const resolvedAt = new Map<string, number>();
 	for (const event of closingRows) {
-		if (!closedAt.has(event.drillId)) closedAt.set(event.drillId, event.tick);
+		if (!resolvedAt.has(event.drillId))
+			resolvedAt.set(event.drillId, event.tick);
 	}
 
 	return rows.map((row) => ({
@@ -315,7 +315,7 @@ export async function listDrills(): Promise<DrillListItem[]> {
 				: { total: row.scoreTotal, grade: row.scoreGrade ?? "F" },
 		firstActionTick: firstAction.get(row.id) ?? null,
 		wrongActions: wrongActions.get(row.id) ?? 0,
-		mttrTicks: closedAt.get(row.id) ?? null,
+		mttrTicks: resolvedAt.get(row.id) ?? null,
 	}));
 }
 
@@ -905,10 +905,7 @@ export async function buildDrillDetail(
 	});
 	const closingEvent = [...events]
 		.reverse()
-		.find(
-			(event) =>
-				event.type === "drill.resolved" || event.type === "drill.failed",
-		);
+		.find((event) => event.type === "drill.resolved");
 
 	return {
 		id: context.drillId,

@@ -89,7 +89,7 @@ const en = {
 
 	"dash.title": "Dashboard",
 	"dash.subtitle":
-		"Live incident console, the scenarios you can drill, and the drills that already ran.",
+		"What to drill next, how ready you are, and what already ran.",
 	"dash.newScenario": "New scenario",
 	"dash.emptyScenarios": "No scenarios yet",
 	"dash.emptyScenariosHint": "Create a scenario to run your first drill.",
@@ -122,6 +122,26 @@ const en = {
 		"Editing keeps the same seed, so replays stay comparable.",
 	"dash.lastDrill": "Last drill",
 	"dash.lastDrillOpen": "Running now, no score yet.",
+
+	"today.eyebrow": "Readiness",
+	"today.subtitle": "Average of the last five graded drills.",
+	"today.noScore": "No graded drill yet",
+	"today.noScoreHint":
+		"Run one drill and this becomes a number you can defend with a report.",
+	"today.deltaUp": "+{delta} vs the run before",
+	"today.deltaDown": "{delta} vs the run before",
+	"today.deltaFlat": "Same as the run before",
+	"today.graded": "{count} graded run(s)",
+	"today.trend": "Trend, oldest to newest",
+	"today.bar": "Run {index}: score {score}",
+	"today.next": "Next drill",
+	"today.reasonNew": "Never graded — unknown risk.",
+	"today.reasonWeakest": "Lowest last score ({score}).",
+	"today.start": "Start this drill",
+	"today.starting": "Starting…",
+	"today.observer": "Observers can open the scenario but cannot start a drill.",
+	"today.none": "No READY scenario",
+	"today.noneHint": "Publish a scenario first; only READY scenarios can run.",
 
 	"console.eyebrow": "Live incident",
 	"console.slaClear": "Within SLA",
@@ -157,7 +177,7 @@ const en = {
 	"scenario.maxTicksHint": "10 to 600 virtual ticks.",
 	"scenario.definition": "Definition (JSON)",
 	"scenario.create": "Create draft",
-	"scenario.created": "Draft created.",
+	"scenario.created": "Saves as a draft — publish it to make it playable.",
 	"scenario.owner": "Owner",
 	"scenario.eventsCount": "Events",
 	"scenario.status.DRAFT": "Draft",
@@ -172,6 +192,18 @@ const en = {
 		"Only drafts can be edited. Publishing locks the definition.",
 	"scenario.saveDraft": "Save draft",
 	"scenario.publish": "Publish scenario",
+	"scenario.verify": "Verify scenario",
+	"scenario.verifying": "Replaying…",
+	"scenario.verifyTitle": "Reference solution",
+	"scenario.verifySolvable": "Winnable",
+	"scenario.verifyUnsolvable": "Not winnable",
+	"scenario.verifyResolve": "Resolves at tick {tick} of {total}",
+	"scenario.verifyPar": "Par score",
+	"scenario.verifyDeadLetters": "Dead letters",
+	"scenario.verifySla": "SLA windows",
+	"scenario.verifyHint":
+		"One required action per tick, replayed through the scoring engine.",
+	"scenario.verifyError": "Could not verify this scenario.",
 	"scenario.editNotice":
 		"The seed stays comparable: changing it changes every future score.",
 
@@ -203,6 +235,8 @@ const en = {
 	"report.breakdown": "Score breakdown",
 	"report.mtta": "MTTA (ticks)",
 	"report.mttr": "MTTR (ticks)",
+	"report.mttrUnresolved":
+		"No MTTR: the drill never recovered before the tick limit.",
 	"report.deadLetters": "Dead-letter webhooks",
 	"report.emptyDeadLetters": "No dead-letter webhooks",
 	"report.notFound": "Report not found",
@@ -211,6 +245,19 @@ const en = {
 	"report.timeline": "Timeline",
 	"report.emptyTimeline": "No timeline entries",
 	"report.sharedLink": "Share link",
+	"report.fixTitle": "What to fix next",
+	"report.fixMissed": "Never applied {action}.",
+	"report.fixWrong": "{count} wrong action(s); each one costs 5 points.",
+	"report.fixNoAction": "No mitigation was applied before the tick limit.",
+	"report.fixMtta":
+		"First action landed at tick {ticks}; the 3-tick grace was missed.",
+	"report.fixSla": "{windows} SLA window(s) breached; 10 points each.",
+	"report.fixClean":
+		"No missed actions, no wrong actions, no SLA windows. Repeat this score.",
+	"report.notScored":
+		"This drill has no score yet. Finish it to get a fix list.",
+	"report.rerun": "Run this scenario again",
+	"report.rerunHint": "Same seed, so the comparison is fair.",
 
 	"rulebook.title": "Rulebook",
 	"rulebook.subtitle":
@@ -285,6 +332,14 @@ const en = {
 	"drill.pending": "Pending",
 	"drill.correct": "Correct",
 	"drill.wrong": "Wrong",
+	"drill.feedbackTitle": "Last action",
+	"drill.feedbackCorrect": "Correct — {action} was required.",
+	"drill.feedbackRepeat":
+		"{action} was already applied. A repeat counts as a wrong action.",
+	"drill.feedbackWrong": "Not required. {action} costs 5 points.",
+	"drill.feedbackProgress": "{done} of {total} required actions done.",
+	"drill.feedbackResolved":
+		"Every required action is done. The drill resolved and was scored.",
 	"drill.rejected": "Rejected",
 	"drill.metric.errorRate": "Error rate",
 	"drill.metric.latency": "Latency (ms)",
@@ -524,7 +579,7 @@ const id: Record<MessageKey, string> = {
 
 	"dash.title": "Dasbor",
 	"dash.subtitle":
-		"Konsol insiden langsung, skenario yang bisa di-drill, dan drill yang sudah berjalan.",
+		"Drill apa berikutnya, seberapa siap kamu, dan apa yang sudah berjalan.",
 	"dash.newScenario": "Skenario baru",
 	"dash.emptyScenarios": "Belum ada skenario",
 	"dash.emptyScenariosHint": "Buat skenario untuk menjalankan drill pertama.",
@@ -557,6 +612,28 @@ const id: Record<MessageKey, string> = {
 		"Menyimpan tidak mengubah seed, sehingga pembandingan tetap konsisten.",
 	"dash.lastDrill": "Drill terakhir",
 	"dash.lastDrillOpen": "Sedang berjalan, belum ada skor.",
+
+	"today.eyebrow": "Kesiapan",
+	"today.subtitle": "Rata-rata dari lima drill dinilai terakhir.",
+	"today.noScore": "Belum ada drill dinilai",
+	"today.noScoreHint":
+		"Jalankan satu drill, lalu angka ini bisa kamu pertahankan dengan laporan.",
+	"today.deltaUp": "+{delta} dari drill sebelumnya",
+	"today.deltaDown": "{delta} dari drill sebelumnya",
+	"today.deltaFlat": "Sama dengan drill sebelumnya",
+	"today.graded": "{count} drill dinilai",
+	"today.trend": "Tren, terlama ke terbaru",
+	"today.bar": "Drill {index}: skor {score}",
+	"today.next": "Drill berikutnya",
+	"today.reasonNew": "Belum pernah dinilai — risikonya belum diketahui.",
+	"today.reasonWeakest": "Skor terakhir paling rendah ({score}).",
+	"today.start": "Mulai drill ini",
+	"today.starting": "Memulai…",
+	"today.observer":
+		"Observer bisa membuka skenario, tapi tidak bisa memulai drill.",
+	"today.none": "Belum ada skenario READY",
+	"today.noneHint":
+		"Terbitkan skenario dulu; hanya skenario READY yang bisa dijalankan.",
 
 	"console.eyebrow": "Insiden aktif",
 	"console.slaClear": "Dalam SLA",
@@ -593,7 +670,8 @@ const id: Record<MessageKey, string> = {
 	"scenario.maxTicksHint": "10 sampai 600 tick virtual.",
 	"scenario.definition": "Definisi (JSON)",
 	"scenario.create": "Buat draft",
-	"scenario.created": "Draft dibuat.",
+	"scenario.created":
+		"Tersimpan sebagai draft — publikasikan agar bisa dimainkan.",
 	"scenario.owner": "Pemilik",
 	"scenario.eventsCount": "Event",
 	"scenario.status.DRAFT": "Draft",
@@ -608,6 +686,18 @@ const id: Record<MessageKey, string> = {
 		"Hanya draft yang bisa diedit. Publish mengunci definisi.",
 	"scenario.saveDraft": "Simpan draft",
 	"scenario.publish": "Terbitkan skenario",
+	"scenario.verify": "Verifikasi skenario",
+	"scenario.verifying": "Memutar ulang…",
+	"scenario.verifyTitle": "Solusi referensi",
+	"scenario.verifySolvable": "Bisa dimenangkan",
+	"scenario.verifyUnsolvable": "Tidak bisa dimenangkan",
+	"scenario.verifyResolve": "Selesai di tick {tick} dari {total}",
+	"scenario.verifyPar": "Skor par",
+	"scenario.verifyDeadLetters": "Dead letter",
+	"scenario.verifySla": "Jendela SLA",
+	"scenario.verifyHint":
+		"Satu aksi wajib per tick, diputar ulang lewat mesin skor.",
+	"scenario.verifyError": "Skenario tidak bisa diverifikasi.",
 	"scenario.editNotice": "Perubahan seed mengubah skor semua drill berikutnya.",
 
 	"drill.title": "Drill",
@@ -638,6 +728,8 @@ const id: Record<MessageKey, string> = {
 	"report.breakdown": "Rincian skor",
 	"report.mtta": "MTTA (tick)",
 	"report.mttr": "MTTR (tick)",
+	"report.mttrUnresolved":
+		"Tidak ada MTTR: drill berakhir tanpa pulih sebelum batas tick.",
 	"report.deadLetters": "Webhook dead-letter",
 	"report.emptyDeadLetters": "Tidak ada webhook dead-letter",
 	"report.notFound": "Laporan tidak ditemukan",
@@ -646,6 +738,20 @@ const id: Record<MessageKey, string> = {
 	"report.timeline": "Linimasa",
 	"report.emptyTimeline": "Belum ada entri linimasa",
 	"report.sharedLink": "Tautan bagikan",
+	"report.fixTitle": "Yang perlu diperbaiki",
+	"report.fixMissed": "Aksi {action} tidak pernah dilakukan.",
+	"report.fixWrong": "{count} aksi salah; masing-masing memotong 5 poin.",
+	"report.fixNoAction":
+		"Tidak ada mitigasi yang diterapkan sebelum batas tick.",
+	"report.fixMtta":
+		"Aksi pertama baru di tick {ticks}; masa tenggang 3 tick terlewat.",
+	"report.fixSla": "{windows} jendela SLA terlampaui; masing-masing 10 poin.",
+	"report.fixClean":
+		"Tidak ada aksi terlewat, tidak ada aksi salah, tidak ada jendela SLA. Ulangi skor ini.",
+	"report.notScored":
+		"Drill ini belum punya skor. Selesaikan dulu untuk mendapat daftar perbaikan.",
+	"report.rerun": "Jalankan skenario ini lagi",
+	"report.rerunHint": "Seed sama, jadi perbandingannya adil.",
 
 	"rulebook.title": "Rulebook",
 	"rulebook.subtitle":
@@ -720,6 +826,14 @@ const id: Record<MessageKey, string> = {
 	"drill.pending": "Menunggu",
 	"drill.correct": "Benar",
 	"drill.wrong": "Salah",
+	"drill.feedbackTitle": "Aksi terakhir",
+	"drill.feedbackCorrect": "Benar — {action} memang aksi wajib.",
+	"drill.feedbackRepeat":
+		"{action} sudah diterapkan. Pengulangan dihitung sebagai aksi salah.",
+	"drill.feedbackWrong": "Tidak diwajibkan. {action} memotong 5 poin.",
+	"drill.feedbackProgress": "{done} dari {total} aksi wajib selesai.",
+	"drill.feedbackResolved":
+		"Semua aksi wajib selesai. Drill berakhir dan sudah dinilai.",
 	"drill.rejected": "Ditolak",
 	"drill.metric.errorRate": "Rasio error",
 	"drill.metric.latency": "Latensi (ms)",

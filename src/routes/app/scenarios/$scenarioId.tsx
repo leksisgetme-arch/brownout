@@ -23,6 +23,8 @@ import {
 	deleteScenarioFn,
 	getScenarioFn,
 	publishScenarioFn,
+	type ScenarioVerification,
+	verifyScenarioFn,
 } from "#/server/scenarios/functions";
 
 export const Route = createFileRoute("/app/scenarios/$scenarioId")({
@@ -46,6 +48,11 @@ function ScenarioDetailPage() {
 	);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const [deleting, setDeleting] = useState(false);
+	const [verification, setVerification] = useState<ScenarioVerification | null>(
+		null,
+	);
+	const [verifying, setVerifying] = useState(false);
+	const [verifyError, setVerifyError] = useState<string | null>(null);
 
 	const isCommander = user?.role === "commander";
 
@@ -73,6 +80,21 @@ function ScenarioDetailPage() {
 			});
 		} finally {
 			setPending(false);
+		}
+	}
+
+	async function verify() {
+		setVerifying(true);
+		setVerifyError(null);
+		try {
+			const result = await verifyScenarioFn({ data: { id: scenario.id } });
+			if (!result.ok) {
+				setVerifyError(result.code);
+				return;
+			}
+			setVerification(result.data);
+		} finally {
+			setVerifying(false);
 		}
 	}
 
@@ -222,7 +244,11 @@ function ScenarioDetailPage() {
 						/>
 						<DataRow
 							label={t("drill.requiredActions")}
-							value={scenario.definition.requiredActions.length}
+							value={
+								<span data-testid="scenario-required-count">
+									{scenario.definition.requiredActions.length}
+								</span>
+							}
 						/>
 					</dl>
 
@@ -279,6 +305,78 @@ function ScenarioDetailPage() {
 							{t("scenario.readOnlyNotice")}
 						</p>
 					) : null}
+
+					<div
+						className="mt-4 border-t border-line pt-3"
+						data-testid="verify-block"
+					>
+						<div className="flex flex-wrap items-center justify-between gap-2">
+							<h2 className="text-sm font-semibold text-ink">
+								{t("scenario.verifyTitle")}
+							</h2>
+							<Button
+								tone="secondary"
+								className="px-2.5 py-1 text-xs"
+								onClick={() => void verify()}
+								disabled={verifying}
+								data-testid="verify-scenario"
+							>
+								{verifying ? t("scenario.verifying") : t("scenario.verify")}
+							</Button>
+						</div>
+						<p className="mt-1 text-[11px] text-ink-3">
+							{t("scenario.verifyHint")}
+						</p>
+
+						{verifyError ? (
+							<div className="mt-2">
+								<ErrorNotice
+									code={verifyError}
+									message={errorMessage(locale, verifyError)}
+									testId="verify-error"
+								/>
+							</div>
+						) : null}
+
+						{verification ? (
+							<div className="mt-3 space-y-2" data-testid="verify-result">
+								<Badge
+									tone={verification.solvable ? "green" : "red"}
+									testId="verify-solvable"
+								>
+									{verification.solvable
+										? t("scenario.verifySolvable")
+										: t("scenario.verifyUnsolvable")}
+								</Badge>
+								<p
+									className="font-mono text-xs text-ink-2"
+									data-testid="verify-resolve"
+								>
+									{t("scenario.verifyResolve", {
+										tick: verification.resolveTick ?? "—",
+										total: verification.maxTicks,
+									})}
+								</p>
+								<p
+									className="font-mono text-xs text-ink-2"
+									data-testid="verify-par"
+								>
+									{t("scenario.verifyPar")}:{" "}
+									<span className="text-amber">
+										{verification.score.total} · {verification.score.grade}
+									</span>
+								</p>
+								<p
+									className="font-mono text-[11px] text-ink-3"
+									data-testid="verify-side"
+								>
+									{t("scenario.verifyDeadLetters")}:{" "}
+									{verification.deadLetters.length} · {t("scenario.verifySla")}:{" "}
+									{verification.slaBreachWindows}
+								</p>
+							</div>
+						) : null}
+					</div>
 				</Card>
 
 				<Card>
