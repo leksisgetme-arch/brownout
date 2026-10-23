@@ -1,0 +1,72 @@
+name: Preview deploy
+
+# TestSprite runs its suite against a URL, not against the diff, so every pull
+# request needs its own deployment. Netlify's GitHub integration is not used
+# here (the site is deployed with the CLI), so this workflow creates an alias
+# deployment per PR: https://pr-<number>--<site>.netlify.app.
+#
+# The URL is printed in the job summary and checked before the job succeeds, so
+# a TestSprite trigger that fires on this workflow can trust it.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: deploy PR preview
+    # Fork PRs do not receive repository secrets.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Netlify CLI
+        run: npm install --global netlify-cli@27
+
+      - name: Deploy preview
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          netlify deploy --build --alias "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER} ${GITHUB_SHA::7}" \
+            --auth "$NETLIFY_AUTH_TOKEN" \
+            --site "$NETLIFY_SITE_ID"
+
+          SITE_NAME=$(netlify api getSite \
+            --data "{\"site_id\":\"${NETLIFY_SITE_ID}\"}" | jq -r '.name')
+          PREVIEW_URL="https://pr-${PR_NUMBER}--${SITE_NAME}.netlify.app"
+          echo "Preview URL: ${PREVIEW_URL}"
+          echo "### Preview: ${PREVIEW_URL}" >> "$GITHUB_STEP_SUMMARY"
+
+          for attempt in 1 2 3 4 5 6; do
+            if curl -sf -o /dev/null "$PREVIEW_URL"; then
+              echo "Alias responds: ${PREVIEW_URL}"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Alias did not respond after 30s: ${PREVIEW_URL}" >&2
+          exit 1
