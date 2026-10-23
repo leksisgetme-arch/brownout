@@ -1,0 +1,63 @@
+name: Deploy to Netlify
+
+# The Netlify project is not linked through Netlify's GitHub App (that binding
+# can only be created in the browser), so this workflow is the continuous
+# deployment path. It runs the same checks as CI, then builds and deploys with
+# the same netlify.toml a local `netlify deploy --build --prod` uses — including
+# the scheduled cron-tick function.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netlify-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: verify, build, deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint and format
+        run: pnpm check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Install Netlify CLI
+        run: npm install --global netlify-cli@27
+
+      - name: Deploy to production
+        run: >-
+          netlify deploy
+          --build
+          --prod
+          --message "GitHub Actions ${GITHUB_SHA::7}"
+          --auth "$NETLIFY_AUTH_TOKEN"
+          --site "$NETLIFY_SITE_ID"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

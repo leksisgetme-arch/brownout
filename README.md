@@ -33,6 +33,10 @@ Netlify sets `DEPLOY_TARGET=netlify` in `[build.environment]`; anything else
 (pushes to Vercel, local dev) keeps Nitro. Both plugins own the server output,
 so exactly one may be active per build.
 
+Deployment is automatic: `.github/workflows/netlify.yml` runs the same checks as
+CI and then deploys to Netlify on every push to `main`. It needs the
+`NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID` repository secrets.
+
 The per-minute drill clock has a single implementation — `GET /api/cron/tick` —
 and two triggers: the Vercel Cron entry in `vercel.json`, and the Netlify
 scheduled function in `netlify/functions/cron-tick.ts`, which calls the route
