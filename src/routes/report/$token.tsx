@@ -200,6 +200,14 @@ function ReportPage() {
 							value={<span data-testid="report-mttr">{mttr ?? "—"}</span>}
 						/>
 					</dl>
+					{mttr === null && drill.state === "EVALUATED" ? (
+						<p
+							className="mt-2 text-xs text-ink-3"
+							data-testid="report-mttr-unresolved"
+						>
+							{t("report.mttrUnresolved")}
+						</p>
+					) : null}
 				</Card>
 
 				<Card>

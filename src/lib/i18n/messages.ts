@@ -177,7 +177,7 @@ const en = {
 	"scenario.maxTicksHint": "10 to 600 virtual ticks.",
 	"scenario.definition": "Definition (JSON)",
 	"scenario.create": "Create draft",
-	"scenario.created": "Draft created.",
+	"scenario.created": "Saves as a draft — publish it to make it playable.",
 	"scenario.owner": "Owner",
 	"scenario.eventsCount": "Events",
 	"scenario.status.DRAFT": "Draft",
@@ -235,6 +235,8 @@ const en = {
 	"report.breakdown": "Score breakdown",
 	"report.mtta": "MTTA (ticks)",
 	"report.mttr": "MTTR (ticks)",
+	"report.mttrUnresolved":
+		"No MTTR: the drill never recovered before the tick limit.",
 	"report.deadLetters": "Dead-letter webhooks",
 	"report.emptyDeadLetters": "No dead-letter webhooks",
 	"report.notFound": "Report not found",
@@ -668,7 +670,8 @@ const id: Record<MessageKey, string> = {
 	"scenario.maxTicksHint": "10 sampai 600 tick virtual.",
 	"scenario.definition": "Definisi (JSON)",
 	"scenario.create": "Buat draft",
-	"scenario.created": "Draft dibuat.",
+	"scenario.created":
+		"Tersimpan sebagai draft — publikasikan agar bisa dimainkan.",
 	"scenario.owner": "Pemilik",
 	"scenario.eventsCount": "Event",
 	"scenario.status.DRAFT": "Draft",
@@ -725,6 +728,8 @@ const id: Record<MessageKey, string> = {
 	"report.breakdown": "Rincian skor",
 	"report.mtta": "MTTA (tick)",
 	"report.mttr": "MTTR (tick)",
+	"report.mttrUnresolved":
+		"Tidak ada MTTR: drill berakhir tanpa pulih sebelum batas tick.",
 	"report.deadLetters": "Webhook dead-letter",
 	"report.emptyDeadLetters": "Tidak ada webhook dead-letter",
 	"report.notFound": "Laporan tidak ditemukan",

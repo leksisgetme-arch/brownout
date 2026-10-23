@@ -189,7 +189,12 @@ function NewScenarioPage() {
 						>
 							{pending ? t("common.loading") : t("scenario.create")}
 						</Button>
-						<span className="text-xs text-ink-3">{t("scenario.created")}</span>
+						<span
+							className="text-xs text-ink-3"
+							data-testid="scenario-draft-hint"
+						>
+							{t("scenario.created")}
+						</span>
 					</div>
 				</form>
 			</Card>
