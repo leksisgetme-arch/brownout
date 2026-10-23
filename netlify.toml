@@ -1,0 +1,21 @@
+# Netlify deployment for Brownout.
+#
+# The server output is produced by @netlify/vite-plugin-tanstack-start
+# (enabled in vite.config.ts when NETLIFY=true). Vercel keeps using Nitro and
+# vercel.json, so both targets build from the same source tree.
+#
+# The per-minute drill clock lives in netlify/functions/cron-tick.ts and
+# replaces the Vercel Cron entry in vercel.json.
+
+[build]
+  command = "vite build"
+  publish = "dist/client"
+
+[build.environment]
+  NODE_VERSION = "22"
+  # Consumed by vite.config.ts to pick the Netlify plugin over Nitro.
+  DEPLOY_TARGET = "netlify"
+
+[dev]
+  command = "vite dev"
+  port = 3000

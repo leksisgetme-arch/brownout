@@ -16,11 +16,39 @@ scenario, respond before the virtual tick limit, and get a score you can explain
 ## Live URL
 
 ```
-https://<vercel-preview-url>   # placeholder — set after the first Vercel preview deployment
+https://brownout-860.netlify.app   # Netlify production
 ```
 
-Deployment target is Vercel, using the documented TanStack Start setup: Nitro plus
-`vercel.json` with `"framework": "tanstack-start"`.
+## Deployment
+
+One tree, two targets. `vite.config.ts` picks the server plugin from
+`DEPLOY_TARGET`, so neither target forces a branch.
+
+| Target | Server plugin | Config | Deploy command |
+| --- | --- | --- | --- |
+| Netlify | `@netlify/vite-plugin-tanstack-start` | `netlify.toml` | `netlify deploy --build --prod` |
+| Vercel | Nitro | `vercel.json` | `vercel deploy --prod` |
+
+Netlify sets `DEPLOY_TARGET=netlify` in `[build.environment]`; anything else
+(pushes to Vercel, local dev) keeps Nitro. Both plugins own the server output,
+so exactly one may be active per build.
+
+The per-minute drill clock has a single implementation — `GET /api/cron/tick` —
+and two triggers: the Vercel Cron entry in `vercel.json`, and the Netlify
+scheduled function in `netlify/functions/cron-tick.ts`, which calls the route
+with `CRON_SECRET`. Netlify scheduled functions run on published deploys only,
+never on deploy previews.
+
+### Netlify
+
+```bash
+netlify link                        # link this clone to the project
+netlify env:import .env             # DATABASE_URL, DATABASE_URL_UNPOOLED, TEST_*, CRON_SECRET
+netlify deploy --build --prod       # build with DEPLOY_TARGET=netlify and publish dist/client
+```
+
+`CRON_SECRET` is required on Netlify; without it the scheduled function skips its
+tick and the drill clock only advances when someone reads a drill.
 
 ## Demo credentials (curated)
 
@@ -50,7 +78,7 @@ scenarios with a "Curated" badge, and the seed script is the only thing that wri
 | Tests | Vitest |
 | Lint/format | Biome |
 | Package manager | pnpm |
-| Deploy | Vercel (Nitro, preview deployment per pull request) |
+| Deploy | Vercel (Nitro) and Netlify (`@netlify/vite-plugin-tanstack-start`) |
 
 ## Getting started
 
@@ -115,6 +143,7 @@ src/
   components/        in-house UI primitives and layout
   lib/               error registry, i18n dictionary, coverage map, rate-limit math
 drizzle/             generated SQL migrations and snapshots
+netlify/functions/   scheduled cron-tick trigger for the drill clock
 scripts/             migrate and seed scripts
 tests/               Vitest unit tests, one file per requirement family
 ```
