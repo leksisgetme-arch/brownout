@@ -1,0 +1,514 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter-tight";
+@import "@fontsource/instrument-serif";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+/*
+ * One dark system. Background, surface, line, ink. Amber marks incidents,
+ * teal marks health, and nothing else introduces a hue.
+ */
+@theme {
+	--font-display: "Instrument Serif", "Times New Roman", Georgia, serif;
+	--font-sans:
+		"Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui,
+		-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	--font-mono:
+		"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+		"Liberation Mono", monospace;
+
+	--color-graphite-950: #0b0c0e;
+	--color-graphite-900: #121316;
+	--color-graphite-850: #17181b;
+	--color-graphite-800: #1d1f23;
+	--color-graphite-700: #2a2d31;
+	--color-ink: #eceae4;
+	--color-ink-2: #a8acb4;
+	--color-ink-3: #8b8f98;
+
+	--color-bg: #0b0c0e;
+	--color-surface: #121316;
+	--color-surface-2: #17181b;
+	--color-line: rgba(255, 255, 255, 0.08);
+	--color-line-strong: rgba(255, 255, 255, 0.16);
+	--color-text: #eceae4;
+	--color-muted: #8b8f98;
+	--color-muted-2: #6b6f78;
+	--color-amber: #ffb020;
+	--color-amber-dim: rgba(255, 176, 32, 0.14);
+	--color-teal: #3bb89a;
+	--color-teal-dim: rgba(59, 184, 154, 0.12);
+
+	--ease-calm: cubic-bezier(0.16, 0.84, 0.44, 1);
+	--ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+	--display-bump: 600ms var(--ease-calm);
+}
+
+@layer base {
+	html {
+		-webkit-text-size-adjust: 100%;
+	}
+
+	body {
+		margin: 0;
+		background-color: var(--color-bg);
+		color: var(--color-text);
+		font-family: var(--font-sans);
+		font-synthesis-weight: none;
+		text-rendering: optimizeLegibility;
+		-webkit-font-smoothing: antialiased;
+	}
+
+	/* Decorative washes and the ticker bleed past the viewport on purpose;
+	 * clip them at the app root so the page never scrolls sideways. `clip`
+	 * (unlike `hidden`) does not create a scroll container, so the sticky
+	 * header still sticks to the viewport and fixed layers stay fixed. */
+	#app {
+		overflow-x: clip;
+	}
+
+	::selection {
+		background-color: color-mix(in oklab, var(--color-amber) 30%, transparent);
+		color: var(--color-text);
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-amber);
+		outline-offset: 3px;
+		border-radius: 2px;
+	}
+
+	h1,
+	h2,
+	h3 {
+		text-wrap: balance;
+	}
+
+	p {
+		text-wrap: pretty;
+	}
+}
+
+@layer components {
+	/* Content column: ~1200 px on an implied 12-column grid. */
+	.site-max {
+		width: 100%;
+		max-width: 1200px;
+		margin-inline: auto;
+		padding-inline: 24px;
+	}
+	@media (min-width: 640px) {
+		.site-max {
+			padding-inline: 32px;
+		}
+	}
+
+	/* Sections sit far apart; the stage breathes through the gaps. */
+	.section-block {
+		position: relative;
+		padding-block: 18vh;
+		/* Trap the negative-z wash inside each section so it stays above
+		 * the fixed canvas without needing to layer every child. */
+		isolation: isolate;
+	}
+
+	/* Per-section atmospheric wash: one faint radial tint each, so every
+	 * section reads as its own scene without breaking the calm palette. */
+	.wash {
+		position: absolute;
+		inset: -10vh -4vw;
+		pointer-events: none;
+		background: radial-gradient(
+			52% 42% at var(--wash-x, 28%) var(--wash-y, 14%),
+			rgb(var(--wash, 96 116 190) / 0.1),
+			transparent 72%
+		);
+	}
+
+	/* Faint 12-column hairline overlay. Fixed, behind everything, never on
+	 * top of text: z-0 with pointer-events none, content sits above. */
+	.grid-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 1;
+		display: flex;
+		gap: 24px;
+		padding-inline: max(24px, calc((100% - 1200px) / 2 + 24px));
+		pointer-events: none;
+	}
+	@media (min-width: 640px) {
+		.grid-overlay {
+			padding-inline: max(32px, calc((100% - 1200px) / 2 + 32px));
+		}
+	}
+	.grid-overlay > i {
+		flex: 1 1 0;
+		border-inline: 1px solid rgba(255, 255, 255, 0.035);
+	}
+	@media (max-width: 767px) {
+		.grid-overlay > i {
+			display: none;
+		}
+		.grid-overlay > i:nth-child(4n + 1),
+		.grid-overlay > i:nth-child(4n) {
+			display: block;
+		}
+	}
+
+	/* Display type: serif, tight, big. One or two italic words max per
+	 * headline; the <em> inside landing copy renders Instrument Serif italic. */
+	.display {
+		font-family: var(--font-display);
+		font-weight: 400;
+		line-height: 0.96;
+		letter-spacing: -0.015em;
+		text-wrap: balance;
+	}
+	.display em {
+		font-style: italic;
+	}
+
+	.eyebrow {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		letter-spacing: 0.24em;
+		text-transform: uppercase;
+		color: var(--color-muted);
+	}
+	.eyebrow-amber {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		letter-spacing: 0.24em;
+		text-transform: uppercase;
+		color: var(--color-amber);
+	}
+
+	.data-label {
+		font-size: 11px;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: var(--color-muted);
+	}
+
+	.tnum {
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* Buttons. Primary: filled amber, dark ink. Ghost: 1px line. */
+	.btn {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		border-radius: 999px;
+		font-weight: 600;
+		white-space: nowrap;
+		will-change: transform;
+	}
+
+	.btn-primary {
+		background-color: var(--color-amber);
+		color: #14100a;
+		box-shadow: 0 1px 0 rgba(255, 255, 255, 0.22) inset,
+			0 8px 28px rgba(255, 176, 32, 0.16);
+	}
+	.btn-primary:hover {
+		background-color: #ffc449;
+	}
+
+	.btn-ghost {
+		border: 1px solid var(--color-line-strong);
+		color: var(--color-text);
+		background: transparent;
+	}
+	.btn-ghost:hover {
+		border-color: rgba(255, 255, 255, 0.34);
+	}
+
+	.btn-sm {
+		height: 36px;
+		padding-inline: 16px;
+		font-size: 13px;
+	}
+	.btn-md {
+		height: 44px;
+		padding-inline: 22px;
+		font-size: 14px;
+	}
+
+	/* Hairlines fade at their ends, so they never run edge to edge harshly. */
+	.hairline {
+		height: 1px;
+		background-image: linear-gradient(
+			to right,
+			transparent,
+			var(--color-line-strong) 12%,
+			var(--color-line-strong) 88%,
+			transparent
+		);
+	}
+
+	/* Glass: nav after scroll and the scrubber panel only. */
+	.glass {
+		background: rgba(18, 19, 22, 0.62);
+		-webkit-backdrop-filter: blur(18px) saturate(1.15);
+		backdrop-filter: blur(18px) saturate(1.15);
+	}
+
+	.link-underline {
+		position: relative;
+		text-decoration: none;
+	}
+
+	.link-underline::after {
+		content: "";
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -2px;
+		height: 1px;
+		background-color: currentColor;
+		transform: scaleX(0);
+		transform-origin: left;
+		transition: transform 420ms var(--ease-calm);
+	}
+
+	.link-underline:hover::after,
+	.link-underline:focus-visible::after {
+		transform: scaleX(1);
+	}
+
+	/* Big outlined section numerals: stroke only, no fill. */
+	.numeral-outline {
+		color: transparent;
+		-webkit-text-stroke: 1px rgba(255, 255, 255, 0.14);
+		font-family: var(--font-display);
+		line-height: 0.85;
+		user-select: none;
+	}
+
+	/* Line mask reveal: each line rises out of an overflow mask. */
+	.reveal-line {
+		display: block;
+		overflow: hidden;
+	}
+
+	.reveal-line > span {
+		display: block;
+		transform: translateY(110%);
+		opacity: 0;
+		transition:
+			transform 700ms var(--ease-calm),
+			opacity 500ms var(--ease-calm);
+		transition-delay: inherit;
+	}
+	.revealed.reveal-line > span,
+	.revealed .reveal-line > span {
+		transform: translateY(0);
+		opacity: 1;
+	}
+
+	/* Per-word mask reveal (hero headline). */
+	.reveal-inner {
+		display: inline-block;
+		transform: translateY(110%);
+		opacity: 0;
+		transition:
+			transform 720ms var(--ease-calm),
+			opacity 540ms var(--ease-calm);
+		transition-delay: inherit;
+	}
+	.revealed .reveal-inner {
+		transform: translateY(0);
+		opacity: 1;
+	}
+	.reduce-motion .reveal-inner {
+		transform: none;
+		opacity: 1;
+		transition: none;
+	}
+
+	.reveal-fade {
+		opacity: 0;
+		transform: translateY(14px);
+		transition:
+			transform 700ms var(--ease-calm),
+			opacity 600ms var(--ease-calm);
+	}
+
+	.revealed.reveal-fade {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	/* Cinematic page dressing: grain and vignette sit above the stage,
+	 * below the content. */
+	.grain {
+		position: fixed;
+		inset: 0;
+		z-index: 3;
+		pointer-events: none;
+		opacity: 0.05;
+		mix-blend-mode: overlay;
+		background-repeat: repeat;
+		background-size: 132px 132px;
+	}
+	.vignette {
+		position: fixed;
+		inset: 0;
+		z-index: 3;
+		pointer-events: none;
+		background:
+			radial-gradient(
+				120% 90% at 50% 40%,
+				transparent 55%,
+				rgba(0, 0, 0, 0.42) 100%
+			);
+	}
+
+	.card {
+		position: relative;
+		border: 1px solid var(--color-line);
+		background: var(--color-surface);
+		border-radius: 14px;
+	}
+	.card::before {
+		content: "";
+		position: absolute;
+		inset: 0 12% auto 12%;
+		top: -1px;
+		height: 1px;
+		background: linear-gradient(
+			to right,
+			transparent,
+			rgba(255, 255, 255, 0.18),
+			transparent
+		);
+		opacity: 0.5;
+		transition: opacity 400ms var(--ease-calm);
+	}
+	.card:hover::before {
+		opacity: 1;
+	}
+
+	.press {
+		transition:
+			transform 180ms var(--ease-out-soft),
+			background-color 320ms var(--ease-calm),
+			border-color 320ms var(--ease-calm),
+			color 320ms var(--ease-calm),
+			box-shadow 320ms var(--ease-calm);
+	}
+	.press:active:not(:disabled) {
+		transform: translateY(1px) scale(0.995);
+	}
+}
+
+@keyframes calm-rise {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.reveal {
+	animation: calm-rise 560ms var(--ease-calm) both;
+}
+
+/* Horizontal mono ticker (healthy section): translate only. */
+@keyframes ticker-slide {
+	from {
+		transform: translate3d(0, 0, 0);
+	}
+	to {
+		transform: translate3d(-50%, 0, 0);
+	}
+}
+.ticker-track {
+	animation: ticker-slide 42s linear infinite;
+}
+
+/* Incident captions rising at different speeds (brownout). */
+@keyframes code-rise {
+	from {
+		opacity: 0;
+		transform: translate3d(0, 18px, 0);
+	}
+	to {
+		opacity: 0.9;
+		transform: translate3d(0, -6px, 0);
+	}
+}
+.code-rise {
+	animation: code-rise var(--rise-dur, 2600ms) var(--ease-calm) both;
+	animation-delay: var(--rise-delay, 0ms);
+}
+
+/* One 200 ms shake for the brownout numeral, run once. */
+@keyframes numeral-shake {
+	0%,
+	100% {
+		transform: translate3d(0, 0, 0);
+	}
+	25% {
+		transform: translate3d(-2px, 1px, 0);
+	}
+	55% {
+		transform: translate3d(2px, -1px, 0);
+	}
+	80% {
+		transform: translate3d(-1px, 0, 0);
+	}
+}
+.numeral-shake {
+	animation: numeral-shake 200ms ease-in-out 1;
+}
+
+/* Gauge arc sweep is scroll driven via stroke-dashoffset in JS. */
+.score-gauge {
+	transform: rotate(-90deg);
+}
+
+/*
+ * Reduced motion is the same switch as ?motion=off. It removes transitions
+ * and infinite animations but never removes content or interaction.
+ */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+	animation-duration: 1ms !important;
+	animation-iteration-count: 1 !important;
+	transition-duration: 1ms !important;
+	scroll-behavior: auto !important;
+}
+
+.reduce-motion .reveal-line > span {
+	transform: none;
+	opacity: 1;
+	transition: none;
+}
+
+.reduce-motion .reveal-fade {
+	transform: none;
+	opacity: 1;
+	transition: none;
+}
+
+.reduce-motion .ticker-track,
+.reduce-motion .code-rise,
+.reduce-motion .numeral-shake {
+	animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html {
+		scroll-behavior: auto;
+	}
+}
