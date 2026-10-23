@@ -2,6 +2,7 @@ import { queryOptions, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { AllClearStrip, IncidentConsole } from "#/components/IncidentConsole";
+import { TodayPanel } from "#/components/TodayPanel";
 import {
 	Badge,
 	Button,
@@ -156,6 +157,13 @@ function DashboardPage() {
 					{t("dash.roleNotice")}
 				</div>
 			) : null}
+
+			<TodayPanel
+				runs={drills}
+				scenarios={scenarios}
+				activeDrill={activeDrill}
+				isCommander={isCommander}
+			/>
 
 			{/* Live incident console: newest open drill, or a calm all-clear. */}
 			{activeDrill &&

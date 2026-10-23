@@ -126,6 +126,14 @@ function DrillPage() {
 		null,
 	);
 	const [token, setToken] = useState<string | null>(null);
+	const [feedback, setFeedback] = useState<{
+		action: ActionType;
+		correct: boolean;
+		repeat: boolean;
+		done: number;
+		total: number;
+		resolved: boolean;
+	} | null>(null);
 
 	const query = useQuery({
 		queryKey: ["drill", initial.id],
@@ -170,6 +178,46 @@ function DrillPage() {
 						: errorMessage(locale, result.code),
 				});
 			}
+			await query.refetch();
+		} finally {
+			setPending(null);
+		}
+	}
+
+	/**
+	 * Actions are answered in place: the operator learns whether the mitigation
+	 * was required without waiting for the report, but the required action list
+	 * is never revealed.
+	 */
+	async function act(action: ActionType) {
+		if (pending || !canAct) return;
+		setPending(action);
+		setError(null);
+		const repeat = drill.performedActions.includes(action);
+		const doneBefore = drill.requiredActions.filter((required) =>
+			drill.performedActions.includes(required),
+		).length;
+		try {
+			const result = await performActionFn({
+				data: { id: drill.id, action },
+			});
+			if (!result.ok) {
+				setError({
+					code: result.code,
+					message: errorMessage(locale, result.code),
+				});
+				return;
+			}
+			setFeedback({
+				action,
+				correct: result.data.correct,
+				repeat,
+				done: result.data.requiredActionsSatisfied
+					? drill.requiredActions.length
+					: doneBefore + (result.data.correct ? 1 : 0),
+				total: drill.requiredActions.length,
+				resolved: result.data.requiredActionsSatisfied,
+			});
 			await query.refetch();
 		} finally {
 			setPending(null);
@@ -406,13 +454,7 @@ function DrillPage() {
 									key={action}
 									tone={done ? "ghost" : "secondary"}
 									disabled={!canAct || pending !== null}
-									onClick={() =>
-										void run(action, () =>
-											performActionFn({
-												data: { id: drill.id, action },
-											}),
-										)
-									}
+									onClick={() => void act(action)}
 									data-testid={`action-${action}`}
 								>
 									{t(`drill.action.${action}`)}
@@ -420,6 +462,44 @@ function DrillPage() {
 							);
 						})}
 					</div>
+
+					{feedback ? (
+						<output
+							data-testid="action-feedback"
+							className={`mt-4 rounded border px-3 py-2 text-xs ${
+								feedback.correct
+									? "border-teal/45 bg-teal/10 text-teal"
+									: "border-amber/45 bg-amber/10 text-amber"
+							}`}
+						>
+							<p className="font-mono text-[10px] uppercase tracking-[0.12em] opacity-70">
+								{t("drill.feedbackTitle")}
+							</p>
+							<p className="mt-1" data-testid="action-feedback-text">
+								{feedback.correct
+									? t("drill.feedbackCorrect", {
+											action: t(`drill.action.${feedback.action}`),
+										})
+									: feedback.repeat
+										? t("drill.feedbackRepeat", {
+												action: t(`drill.action.${feedback.action}`),
+											})
+										: t("drill.feedbackWrong", {
+												action: t(`drill.action.${feedback.action}`),
+											})}
+							</p>
+							<p
+								className="mt-1 font-mono text-[11px] text-ink-3"
+								data-testid="action-feedback-progress"
+							>
+								{t("drill.feedbackProgress", {
+									done: feedback.done,
+									total: feedback.total,
+								})}
+								{feedback.resolved ? ` ${t("drill.feedbackResolved")}` : ""}
+							</p>
+						</output>
+					) : null}
 
 					<dl className="mt-5">
 						<DataRow

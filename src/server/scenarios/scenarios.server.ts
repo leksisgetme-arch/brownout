@@ -1,8 +1,12 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import {
+	type ActionType,
+	type DrillState,
+	runScenario,
 	type ScenarioDefinition,
 	type ScenarioEventInput,
 	type ScenarioStatus,
+	type ScoreBreakdown,
 	transition,
 	validateScenario,
 } from "#/engine";
@@ -21,6 +25,8 @@ export interface ScenarioListItem {
 	maxTicks: number;
 	status: ScenarioStatus;
 	eventCount: number;
+	/** A scenario with no required action resolves without a decision. */
+	requiredActionCount: number;
 	curated: boolean;
 	ownerEmail: string;
 	updatedAt: string;
@@ -39,6 +45,19 @@ export interface ScenarioDetail {
 	/** A scenario can only have one open drill; the page opens it instead of
 	 * offering a Start button that the server would reject. */
 	openDrill: { id: string; state: string; tick: number } | null;
+}
+
+export interface ScenarioVerification {
+	solvable: boolean;
+	finalState: DrillState;
+	/** Tick the reference solution resolved at, or null when it never did. */
+	resolveTick: number | null;
+	maxTicks: number;
+	/** Score of the reference solution: the highest score this scenario offers. */
+	score: ScoreBreakdown;
+	actions: { tick: number; type: ActionType }[];
+	deadLetters: number[];
+	slaBreachWindows: number;
 }
 
 export interface CreateScenarioInput {
@@ -75,6 +94,9 @@ export async function listScenarios(): Promise<ScenarioListItem[]> {
 		status: row.status,
 		eventCount: Array.isArray(row.definition?.events)
 			? row.definition.events.length
+			: 0,
+		requiredActionCount: Array.isArray(row.definition?.requiredActions)
+			? row.definition.requiredActions.length
 			: 0,
 		curated: row.definition?.curated === true,
 		ownerEmail: row.ownerEmail,
@@ -350,4 +372,46 @@ export async function deleteScenario(
 
 	await db.delete(schema.scenarios).where(eq(schema.scenarios.id, id));
 	return okResult({ deleted: true as const });
+}
+
+/**
+ * Proves that a scenario is winnable. The reference solution performs each
+ * required action on consecutive ticks, starting at tick 1; the result comes
+ * from the same pure engine that scores a real drill, so "par" can never drift
+ * from the scoreboard. Read-only: it writes nothing and is safe for observers.
+ */
+export async function verifyScenario(
+	id: string,
+): Promise<ServerResult<ScenarioVerification>> {
+	await requireSessionUser();
+	const db = getDb();
+
+	const [row] = await db
+		.select({
+			definition: schema.scenarios.definition,
+			maxTicks: schema.scenarios.maxTicks,
+		})
+		.from(schema.scenarios)
+		.where(eq(schema.scenarios.id, id))
+		.limit(1);
+
+	if (!row) return failResult("E-NOT-FOUND-404", "Scenario not found.");
+
+	const definition = row.definition;
+	const actions = definition.requiredActions.map((type, index) => ({
+		tick: index + 1,
+		type,
+	}));
+	const run = runScenario({ definition, actions });
+
+	return okResult({
+		solvable: run.finalState === "EVALUATED" && run.mttrTicks !== null,
+		finalState: run.finalState,
+		resolveTick: run.mttrTicks,
+		maxTicks: row.maxTicks,
+		score: run.score,
+		actions,
+		deadLetters: run.deadLetters,
+		slaBreachWindows: run.slaBreachWindows,
+	});
 }

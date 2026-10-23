@@ -6,12 +6,14 @@ import {
 	listScenarios,
 	publishScenario,
 	updateScenario,
+	verifyScenario,
 } from "./scenarios.server";
 
 export type {
 	CreateScenarioInput,
 	ScenarioDetail,
 	ScenarioListItem,
+	ScenarioVerification,
 } from "./scenarios.server";
 
 export const listScenariosFn = createServerFn({ method: "GET" }).handler(
@@ -65,3 +67,10 @@ export const deleteScenarioFn = createServerFn({ method: "POST" })
 		return { id: typeof value.id === "string" ? value.id : "" };
 	})
 	.handler(async ({ data }) => deleteScenario(data.id));
+
+export const verifyScenarioFn = createServerFn({ method: "GET" })
+	.validator((input: unknown) => {
+		const value = (input ?? {}) as { id?: unknown };
+		return { id: typeof value.id === "string" ? value.id : "" };
+	})
+	.handler(async ({ data }) => verifyScenario(data.id));

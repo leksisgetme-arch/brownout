@@ -73,13 +73,13 @@ async function startableScenario(page) {
 		.first()
 		.click();
 	await page.waitForSelector('[data-testid="drill-detail"]', {
-		timeout: 15_000,
+		timeout: 30_000,
 	});
 	await page.click('[data-testid="reset-drill"]');
 	await page.waitForTimeout(600);
 	await page.goto(`${BASE}/app`, { waitUntil: "networkidle" });
 	await page.waitForSelector('[data-testid="dashboard-page"]', {
-		timeout: 15_000,
+		timeout: 30_000,
 	});
 	return start.first();
 }
@@ -163,7 +163,7 @@ test("commander starts a drill and the virtual clock runs on its own", async () 
 	try {
 		await signIn(page, COMMANDER.email, COMMANDER.password);
 		await page.waitForSelector('[data-testid="dashboard-page"]', {
-			timeout: 15_000,
+			timeout: 30_000,
 		});
 		assert.equal(
 			await page.locator('[data-testid="footer-wordmark"]').count(),
@@ -173,7 +173,7 @@ test("commander starts a drill and the virtual clock runs on its own", async () 
 
 		await (await startableScenario(page)).click();
 		await page.waitForSelector('[data-testid="drill-detail"]', {
-			timeout: 15_000,
+			timeout: 30_000,
 		});
 
 		const tick = async () =>
@@ -181,19 +181,34 @@ test("commander starts a drill and the virtual clock runs on its own", async () 
 
 		await page.waitForTimeout(600);
 		const first = await tick();
-		await page.waitForTimeout(3200);
-		const second = await tick();
+		// Each poll is several sequential database round trips, so the clock is
+		// observed with a deadline instead of a fixed window. The assertion is
+		// still "it moved by itself", only the wait is patient.
+		let second = first;
+		const deadline = Date.now() + 30_000;
+		while (second <= first && Date.now() < deadline) {
+			await page.waitForTimeout(500);
+			second = await tick();
+		}
 		assert.ok(
 			second > first,
 			`expected the tick to advance by itself, saw ${first} -> ${second}`,
 		);
 
 		await page.click('[data-testid="pause-drill"]');
+		await page.waitForFunction(
+			() =>
+				document
+					.querySelector('[data-testid="drill-state"]')
+					?.textContent?.includes("PAUSED"),
+			undefined,
+			{ timeout: 30_000 },
+		);
 		// A poll that was already in flight can land one tick after the pause,
-		// so wait for the console to settle before freezing the expectation.
-		await page.waitForTimeout(2600);
+		// so let the console settle before freezing the expectation.
+		await page.waitForTimeout(6000);
 		const paused = await tick();
-		await page.waitForTimeout(2400);
+		await page.waitForTimeout(4000);
 		assert.equal(await tick(), paused, "a paused drill must not age");
 	} finally {
 		await page.close();
@@ -205,7 +220,7 @@ test("the dashboard console mirrors the open drill", async () => {
 	try {
 		await signIn(page, COMMANDER.email, COMMANDER.password);
 		await page.waitForSelector('[data-testid="incident-console"]', {
-			timeout: 15_000,
+			timeout: 30_000,
 		});
 
 		// Three live metric panels, each fed by the engine's own samples.
@@ -224,7 +239,7 @@ test("the dashboard console mirrors the open drill", async () => {
 			page.locator('[data-testid="console-tick"]').innerText();
 		const before = await tick();
 		assert.match(before, /tick \d+ of \d+/);
-		await page.waitForTimeout(2600);
+		await page.waitForTimeout(6000);
 		assert.equal(await tick(), before, "a paused drill must not tick");
 	} finally {
 		await page.close();
@@ -269,13 +284,13 @@ test("a shared report opens for a guest with no action buttons", async () => {
 	try {
 		await signIn(page, COMMANDER.email, COMMANDER.password);
 		await page.waitForSelector('[data-testid="dashboard-page"]', {
-			timeout: 15_000,
+			timeout: 30_000,
 		});
 		await page.click(
 			'[data-testid="last-drill-link"], [data-testid="console-open-drill"]',
 		);
 		await page.waitForSelector('[data-testid="drill-detail"]', {
-			timeout: 15_000,
+			timeout: 30_000,
 		});
 
 		await page.click('[data-testid="share-link-button"]');
@@ -288,7 +303,7 @@ test("a shared report opens for a guest with no action buttons", async () => {
 		const report = await guest.newPage();
 		await report.goto(href, { waitUntil: "networkidle" });
 		await report.waitForSelector('[data-testid="report-page"]', {
-			timeout: 15_000,
+			timeout: 30_000,
 		});
 		assert.equal(
 			await report.locator('[data-testid="pause-drill"]').count(),

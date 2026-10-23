@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Badge, Card, DataRow, EmptyState, PageHeader } from "#/components/ui";
 import type { RunLogEntry, ScoreBreakdown } from "#/engine";
+import { useAppContext } from "#/lib/app-context";
 import { formatDateTime } from "#/lib/format";
 import { useI18n } from "#/lib/i18n/use-i18n";
+import { buildFixList, type FixItem } from "#/lib/readiness";
 import { getReportFn } from "#/server/drills/functions";
 
 export const Route = createFileRoute("/report/$token")({
@@ -14,6 +16,7 @@ export const Route = createFileRoute("/report/$token")({
 
 function ReportPage() {
 	const { t, locale } = useI18n();
+	const { user } = useAppContext();
 	const result = Route.useLoaderData();
 
 	if (!result.ok) {
@@ -35,6 +38,32 @@ function ReportPage() {
 	);
 	const breakdown: ScoreBreakdown | null = drill.score?.breakdown ?? null;
 	const mttr = drill.mttrTicks;
+	const isCommander = user?.role === "commander";
+	const neverActed = drill.firstActionTick === null;
+	const fixes = buildFixList({
+		requiredActions: drill.requiredActions,
+		performedActions: drill.performedActions,
+		wrongActions: drill.wrongActions,
+		breakdown,
+	});
+	const fixText = (fix: FixItem): string => {
+		switch (fix.id) {
+			case "missed":
+				return t("report.fixMissed", {
+					action: t(`drill.action.${fix.action}`),
+				});
+			case "wrong":
+				return t("report.fixWrong", { count: fix.count });
+			case "mtta":
+				return neverActed
+					? t("report.fixNoAction")
+					: t("report.fixMtta", { ticks: fix.ticks });
+			case "sla":
+				return t("report.fixSla", { windows: fix.windows });
+			default:
+				return t("report.fixClean");
+		}
+	};
 
 	const penaltyRows: Array<{ key: string; label: string; value: number }> =
 		breakdown
@@ -141,7 +170,9 @@ function ReportPage() {
 								key={row.key}
 								label={row.label}
 								value={
-									<span data-testid={`breakdown-${row.key}`}>−{row.value}</span>
+									<span data-testid={`breakdown-${row.key}`}>
+										{row.value === 0 ? "0" : `−${row.value}`}
+									</span>
 								}
 							/>
 						))}
@@ -222,6 +253,56 @@ function ReportPage() {
 							))}
 						</ul>
 					)}
+				</Card>
+			</div>
+
+			<div data-testid="report-fix-list">
+				<Card>
+					<h2 className="text-sm font-semibold text-ink">
+						{t("report.fixTitle")}
+					</h2>
+					<p className="mt-1 text-xs text-ink-3">{t("report.subtitle")}</p>
+					{breakdown ? (
+						<ul className="mt-3 space-y-2" data-testid="report-fix-items">
+							{fixes.map((fix) => (
+								<li
+									key={fix.id === "missed" ? `missed-${fix.action}` : fix.id}
+									data-testid={`report-fix-${fix.id}${
+										fix.id === "missed" ? `-${fix.action}` : ""
+									}`}
+									className="flex gap-2 text-sm text-ink-2"
+								>
+									<span aria-hidden="true" className="font-mono text-amber">
+										→
+									</span>
+									<span>{fixText(fix)}</span>
+								</li>
+							))}
+						</ul>
+					) : (
+						<p
+							className="mt-3 text-sm text-ink-3"
+							data-testid="report-not-scored"
+						>
+							{t("report.notScored")}
+						</p>
+					)}
+
+					{isCommander ? (
+						<div className="mt-4 border-t border-line pt-3">
+							<Link
+								to="/app/scenarios/$scenarioId"
+								params={{ scenarioId: drill.scenarioId }}
+								data-testid="report-rerun"
+								className="press inline-flex items-center gap-2 rounded border border-amber bg-amber px-3 py-2 text-sm font-medium text-graphite-950 hover:bg-[#ffc449]"
+							>
+								{t("report.rerun")}
+							</Link>
+							<p className="mt-2 text-[11px] text-ink-3">
+								{t("report.rerunHint")}
+							</p>
+						</div>
+					) : null}
 				</Card>
 			</div>
 
