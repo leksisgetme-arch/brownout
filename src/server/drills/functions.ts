@@ -66,9 +66,10 @@ export const performActionFn = createServerFn({ method: "POST" })
 		return {
 			id: typeof value.id === "string" ? value.id : "",
 			action: typeof value.action === "string" ? value.action : "",
+			tick: typeof value.tick === "number" ? value.tick : undefined,
 		};
 	})
-	.handler(async ({ data }) => performAction(data.id, data.action));
+	.handler(async ({ data }) => performAction(data.id, data.action, data.tick));
 
 export const evaluateDrillFn = createServerFn({ method: "POST" })
 	.validator((input: unknown) => ({ id: asId(input) }))

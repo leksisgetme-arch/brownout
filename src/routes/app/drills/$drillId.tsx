@@ -202,7 +202,7 @@ function DrillPage() {
 		).length;
 		try {
 			const result = await performActionFn({
-				data: { id: drill.id, action },
+				data: { id: drill.id, action, tick: drill.tick },
 			});
 			if (!result.ok) {
 				setError({

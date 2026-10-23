@@ -60,10 +60,19 @@ export const BUILTIN_SCENARIO_INPUTS: readonly ScenarioInput[] = [
 				payload: { consumer: "worker-a", lagTicks: 9 },
 				failure: "out_of_order",
 			},
+			// The successor lands before the out_of_order attempt above, so the
+			// receiver holds it until sequence 3 closes the gap. It must arrive on
+			// its first attempt for that to happen.
 			{
-				tick: 48,
+				tick: 34,
 				type: "consumer.lag",
 				payload: { consumer: "worker-b", lagTicks: 14 },
+				failure: null,
+			},
+			{
+				tick: 60,
+				type: "consumer.lag",
+				payload: { consumer: "worker-c", lagTicks: 20 },
 				failure: "drop",
 			},
 		],

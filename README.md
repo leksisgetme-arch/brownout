@@ -364,8 +364,10 @@ timelines in `tests/fr-f-scoring.test.ts`.
 
 ### Test mode and the virtual clock
 
-Both endpoints require `TEST_MODE=true` and the secret header. With test mode off they return `404`;
-with a wrong secret they return `401 E-TEST-401`.
+With `TEST_MODE=true` the wall clock is frozen: an open drill only moves when the operator clicks
+**Advance tick**, so a browser run can reproduce an exact tick instead of racing the clock. Production
+keeps the automatic one-tick-per-second clock. Both endpoints require `TEST_MODE=true` and the secret
+header. With test mode off they return `404`; with a wrong secret they return `401 E-TEST-401`.
 
 ```bash
 curl -X POST http://localhost:3000/api/test/reset \
