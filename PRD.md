@@ -34,7 +34,7 @@ Sediakan dua akun demo (Commander dan Observer) dengan kredensial tertulis di RE
 
 ## 4. Konsep inti
 
-**Jam virtual.** Satu tick = satu detik virtual. Mode normal berjalan otomatis; **mode test** punya tombol dan endpoint *Advance tick* sehingga test tidak menunggu waktu nyata.
+**Jam virtual.** Satu tick = satu detik virtual. Mode normal berjalan otomatis; **mode test** membekukan jam dinding dan hanya bergerak lewat tombol/endpoint *Advance tick*, sehingga test tidak menunggu waktu nyata dan tick-nya bisa direproduksi.
 
 **Skenario.** Dokumen JSON: nama, seed, batas tick, daftar event (tick, tipe, payload, kegagalan yang disuntikkan), metrik awal, aksi mitigasi wajib.
 

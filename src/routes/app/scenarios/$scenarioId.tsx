@@ -253,7 +253,7 @@ function ScenarioDetailPage() {
 					</dl>
 
 					{scenario.status === "READY" && isCommander ? (
-						<div className="mt-4">
+						<div className="mt-4 space-y-2">
 							{scenario.openDrill ? (
 								<Link
 									to="/app/drills/$drillId"
@@ -267,7 +267,8 @@ function ScenarioDetailPage() {
 										{scenario.openDrill.state} · tick {scenario.openDrill.tick}
 									</span>
 								</Link>
-							) : (
+							) : null}
+							{!scenario.openDrill || scenario.testMode ? (
 								<Button
 									onClick={() => void startDrill()}
 									disabled={pending}
@@ -276,7 +277,7 @@ function ScenarioDetailPage() {
 								>
 									{pending ? t("common.loading") : t("home.ctaPrimary")}
 								</Button>
-							)}
+							) : null}
 							<p className="mt-2 text-xs text-ink-3">
 								{t("common.commander")} · 5/min · E-RATE-429
 							</p>

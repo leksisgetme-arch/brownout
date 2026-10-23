@@ -27,17 +27,36 @@ export const getScenarioFn = createServerFn({ method: "GET" })
 	})
 	.handler(async ({ data }) => getScenario(data.id));
 
+/** Metrics and required actions are optional, but when present they must be
+ * the right shape: the server filters unknown actions itself. */
+function readBuilderFields(value: Record<string, unknown>) {
+	const rawMetrics = (value.metrics ?? {}) as Record<string, unknown>;
+	const metric = (key: string) =>
+		typeof rawMetrics[key] === "number" && Number.isFinite(rawMetrics[key])
+			? (rawMetrics[key] as number)
+			: Number.NaN;
+	return {
+		name: typeof value.name === "string" ? value.name : "",
+		seed: typeof value.seed === "number" ? value.seed : Number.NaN,
+		maxTicks: typeof value.maxTicks === "number" ? value.maxTicks : Number.NaN,
+		eventsJson: typeof value.eventsJson === "string" ? value.eventsJson : "",
+		metrics: {
+			errorRate: metric("errorRate"),
+			latencyMs: metric("latencyMs"),
+			queueDepth: metric("queueDepth"),
+		},
+		requiredActions: Array.isArray(value.requiredActions)
+			? value.requiredActions.filter(
+					(action): action is string => typeof action === "string",
+				)
+			: [],
+	};
+}
+
 export const createScenarioFn = createServerFn({ method: "POST" })
-	.validator((input: unknown) => {
-		const value = (input ?? {}) as Record<string, unknown>;
-		return {
-			name: typeof value.name === "string" ? value.name : "",
-			seed: typeof value.seed === "number" ? value.seed : Number.NaN,
-			maxTicks:
-				typeof value.maxTicks === "number" ? value.maxTicks : Number.NaN,
-			eventsJson: typeof value.eventsJson === "string" ? value.eventsJson : "",
-		};
-	})
+	.validator((input: unknown) =>
+		readBuilderFields((input ?? {}) as Record<string, unknown>),
+	)
 	.handler(async ({ data }) => createScenario(data));
 
 export const updateScenarioFn = createServerFn({ method: "POST" })
@@ -45,11 +64,7 @@ export const updateScenarioFn = createServerFn({ method: "POST" })
 		const value = (input ?? {}) as Record<string, unknown>;
 		return {
 			id: typeof value.id === "string" ? value.id : "",
-			name: typeof value.name === "string" ? value.name : "",
-			seed: typeof value.seed === "number" ? value.seed : Number.NaN,
-			maxTicks:
-				typeof value.maxTicks === "number" ? value.maxTicks : Number.NaN,
-			eventsJson: typeof value.eventsJson === "string" ? value.eventsJson : "",
+			...readBuilderFields(value),
 		};
 	})
 	.handler(async ({ data }) => updateScenario(data.id, data));

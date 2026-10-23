@@ -86,7 +86,12 @@ function DashboardPage() {
 
 	const isCommander = user?.role === "commander";
 	const activeDrills = drills.filter((drill) => ACTIVE_STATES.has(drill.state));
-	const activeDrill = activeDrills[0] ?? null;
+	// A paused drill is waiting on the operator, so it is the one Today should
+	// surface even when another incident is still running.
+	const activeDrill =
+		activeDrills.find((drill) => drill.state === "PAUSED") ??
+		activeDrills[0] ??
+		null;
 	// listDrills() is newest first, so the first row is the latest drill.
 	const latestDrill = drills[0] ?? null;
 	const readyScenarios = scenarios.filter(
@@ -386,7 +391,10 @@ function ScenarioCard({
 							{openDrill.state} · tick {openDrill.tick}
 						</span>
 					</Link>
-				) : scenario.status === "READY" && isCommander ? (
+				) : null}
+				{scenario.status === "READY" &&
+				isCommander &&
+				(!openDrill || scenario.testMode) ? (
 					<Button
 						data-testid={`scenario-start-${scenario.id}`}
 						className="px-2.5 py-1 text-xs"
