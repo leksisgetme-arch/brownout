@@ -15,11 +15,17 @@ const onNetlify =
 
 const config = defineConfig({
 	resolve: { tsconfigPaths: true },
-	// gsap ships CommonJS-only entry points. Bundling it for SSR keeps the
-	// Netlify function free of bare `import { ScrollTrigger } from
-	// "gsap/ScrollTrigger"` statements, which Node 24 rejects with
-	// "Named export 'ScrollTrigger' not found".
-	ssr: { noExternal: [/^gsap(\/|$)/] },
+	// gsap, three and the react-three stack ship CommonJS entry points.
+	// Bundling them for SSR keeps the Netlify function free of bare CJS imports
+	// that Node 24 rejects ("Named export not found", "require() of ES Module").
+	ssr: {
+		noExternal: [
+			/^gsap(\/|$)/,
+			/^three(\/|$)/,
+			/^@react-three\//,
+			/^postprocessing(\/|$)/,
+		],
+	},
 	plugins: [
 		devtools(),
 		onNetlify ? netlify() : nitro(),
