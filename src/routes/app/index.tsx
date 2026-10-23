@@ -386,7 +386,10 @@ function ScenarioCard({
 							{openDrill.state} · tick {openDrill.tick}
 						</span>
 					</Link>
-				) : scenario.status === "READY" && isCommander ? (
+				) : null}
+				{scenario.status === "READY" &&
+				isCommander &&
+				(!openDrill || scenario.testMode) ? (
 					<Button
 						data-testid={`scenario-start-${scenario.id}`}
 						className="px-2.5 py-1 text-xs"

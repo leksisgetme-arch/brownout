@@ -340,6 +340,12 @@ async function consumeStartBudget(
 	const decision = evaluateRateLimit(
 		recent.map((hit) => hit.createdAt.getTime()),
 		Date.now(),
+		// Parallel browser cases each start their own drill. The five-per-minute
+		// budget is a production guard (FR-I2), so test mode raises the ceiling
+		// instead of turning a suite run into a wall of E-RATE-429.
+		isTestMode()
+			? { limit: 1_000, windowMs: RATE_LIMIT_WINDOW_MS }
+			: { limit: 5, windowMs: RATE_LIMIT_WINDOW_MS },
 	);
 
 	if (!decision.allowed) {
@@ -387,23 +393,26 @@ export async function startDrill(
 	}
 
 	// One open drill per scenario: a second click opens a second clock for the
-	// same incident, which makes the dashboard read like two realities.
-	const [open] = await db
-		.select({ id: schema.drills.id })
-		.from(schema.drills)
-		.where(
-			and(
-				eq(schema.drills.scenarioId, scenario.id),
-				inArray(schema.drills.state, ["RUNNING", "PAUSED"]),
-			),
-		)
-		.limit(1);
+	// same incident, which makes the dashboard read like two realities. Test
+	// mode lifts the rule so parallel browser cases can each own a clock.
+	if (!isTestMode()) {
+		const [open] = await db
+			.select({ id: schema.drills.id })
+			.from(schema.drills)
+			.where(
+				and(
+					eq(schema.drills.scenarioId, scenario.id),
+					inArray(schema.drills.state, ["RUNNING", "PAUSED"]),
+				),
+			)
+			.limit(1);
 
-	if (open) {
-		return failResult(
-			"E-STATE-409",
-			"A drill is already open for this scenario. Open it or reset it first.",
-		);
+		if (open) {
+			return failResult(
+				"E-STATE-409",
+				"A drill is already open for this scenario. Open it or reset it first.",
+			);
+		}
 	}
 
 	const [drill] = await db
