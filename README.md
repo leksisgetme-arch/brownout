@@ -260,8 +260,8 @@ timelines in `tests/fr-f-scoring.test.ts`.
 
 ## Assumptions made in this milestone
 
-1. **No git repository was initialised and no commit or PR was created**, per the explicit
-   instruction in this session. The tree is ready to be committed as one foundation PR.
+1. **The repository starts with a single foundation commit on `main`.** No pull request was
+   opened; the PR-based workflow and branch protection begin with the next change.
 2. **Default locale is English.** Indonesian is one click away and persists in a cookie. Chosen so
    the default demo path is readable for judges; both dictionaries are complete.
 3. **Health returns 200 even when the database is down**, with `status: "degraded"`. This keeps
