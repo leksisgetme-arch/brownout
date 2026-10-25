@@ -5,7 +5,7 @@ import {
 	useNavigate,
 	useRouter,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	Badge,
 	Button,
@@ -43,6 +43,11 @@ function ScenarioDetailPage() {
 	const router = useRouter();
 	const { user } = useAppContext();
 	const [pending, setPending] = useState(false);
+	// The start button is server rendered, so its click handler only exists after
+	// hydration. Keeping it disabled until then stops an early click — a real
+	// one, or a TestSprite step — from silently doing nothing.
+	const [hydrated, setHydrated] = useState(false);
+	useEffect(() => setHydrated(true), []);
 	const [error, setError] = useState<{ code: string; message: string } | null>(
 		null,
 	);
@@ -271,7 +276,7 @@ function ScenarioDetailPage() {
 							{!scenario.openDrill || scenario.testMode ? (
 								<Button
 									onClick={() => void startDrill()}
-									disabled={pending}
+									disabled={pending || !hydrated}
 									data-testid="start-drill"
 									className="w-full"
 								>
