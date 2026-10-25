@@ -2,8 +2,10 @@
 
 **Product:** Brownout — deterministic incident-drill simulator
 **Document purpose:** source of truth for generating and judging the end-to-end suite
-**Version:** 2.0 (adds Today, per-action feedback, report fix list, reference solution)
+**Version:** 2.1 (adds suite status and the local gate that runs beside the portal)
 **Language of the app:** English by default, Indonesian available from the header
+**Suite in the portal:** 69 cases across the families in section 5
+**Local gate:** Biome + `tsc` + 338 Vitest tests on every PR, plus 8 browser e2e tests (`pnpm test:e2e`)
 
 ---
 

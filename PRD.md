@@ -2,7 +2,9 @@
 
 *Latihan hari terburuk tim-mu. Simulator incident drill dengan skenario deterministik, webhook sandbox, dan skor yang bisa dibuktikan.*
 
-Dibuat untuk TestSprite Hackathon Season 4. Dokumen ini ditulis agar bisa langsung dibaca AI coding assistant dan dipakai sebagai spesifikasi test di portal TestSprite 3.0.
+Dokumen ini adalah spesifikasi produk Brownout: apa yang dibangun, aturan yang tidak boleh dilanggar, dan bagaimana hasilnya dibuktikan oleh test. Bagian akhir mencatat konteks submission TestSprite Hackathon Season 4 — produknya berdiri sendiri, hackathon hanya menjelaskan mengapa suite test-nya selebar ini. Ditulis agar bisa langsung dibaca AI coding assistant dan dipakai sebagai spesifikasi test di portal TestSprite.
+
+Status implementasi: live di https://brownout-860.netlify.app, sumber di https://github.com/leksisgetme-arch/brownout. Semua FR di bawah ini punya test yang menyebut ID-nya; peta lengkapnya ada di README bagian **Testing**.
 
 ## 1. Ringkasan
 
@@ -126,20 +128,32 @@ Linimasa event dan aksi, rincian skor per penalti, MTTA dan MTTR, daftar webhook
 6. Test memakai data tetap, tidak bergantung pada tanggal hari ini.
 7. Rate limit dikonfigurasi kecil (5 per menit) agar 429 bisa diuji dengan sedikit request.
 
-## 7. Rencana test (target desain sekitar 60)
+## 7. Test yang berjalan hari ini
 
-Angka ini target desain. Jumlah akhir bergantung pada hasil portal 3.0 dan kredit akun, jadi cek batas kredit sebelum membuat puluhan test.
+Rencana awalnya sekitar 60 kasus di portal. Yang berjalan sekarang tiga lapis, dan tiap lapis membuktikan hal yang tidak bisa dibuktikan lapis lain:
 
-| Keluarga | Contoh | Perkiraan |
+| Lapis | Jumlah | Membuktikan |
 | --- | --- | --- |
-| Auth dan peran | login benar/salah, password pendek, sesi habis, Observer ditolak, laporan publik | 8 |
-| Scenario builder | batas nama, batas tick, 20 vs 21 event, JSON rusak, XSS tersimpan aman, target tidak valid | 10 |
-| State machine | setiap transisi sah, setiap transisi ilegal, klik cepat, reset | 10 |
-| Delivery dan receiver | retry 1-3, dead-letter, tanda tangan salah, duplikat, out-of-order, timeout | 10 |
-| Scoring dan laporan | MTTA tepat di batas, aksi salah, SLA breach, nilai A hingga F, seed sama hasil sama | 8 |
-| Live view | metrik berubah, refresh saat jalan, reconnect, motion off | 5 |
-| Keamanan dan batas | rate limit 429, payload terlalu besar, URL bebas ditolak | 5 |
-| Kosong dan error | daftar kosong, halaman tidak ada, persistensi setelah muat ulang | 4 |
+| Unit (Vitest) | 338 test di 21 file | Aturan murni: transisi state, retry delivery, HMAC, scoring, batas builder, rate limit, paritas i18n, determinisme |
+| Browser e2e (`node:test` + Playwright) | 8 test | Aplikasi nyata lewat HTTP dan database: login, throttling, jam test-mode, console, menu mobile, laporan tamu |
+| Portal TestSprite | 69 kasus | Perilaku di preview PR: peran, state, batas, kode `E-*`, angka laporan |
+
+Keluarga kasus di portal, sesuai kontrak yang dipakai `PRD.testsprite.md`:
+
+| Keluarga | Contoh |
+| --- | --- |
+| Auth dan peran | login benar/salah, password pendek, sesi habis, Observer ditolak, laporan publik |
+| Scenario builder | batas nama, batas tick, 20 vs 21 event, JSON rusak, XSS tersimpan aman, target tidak valid |
+| State machine | setiap transisi sah, setiap transisi ilegal, klik cepat, reset |
+| Delivery dan receiver | retry 1-3, dead-letter, tanda tangan salah, duplikat, out-of-order, timeout |
+| Scoring dan laporan | MTTA tepat di batas, aksi salah, SLA breach, nilai A hingga F, seed sama hasil sama |
+| Today dan re-run | readiness berubah setelah drill dinilai, rekomendasi berganti, run kedua bisa dibandingkan |
+| Referensi solusi | replay deterministik: skenario sama, par score sama, dua kali |
+| Live view | metrik berubah, refresh saat jalan, reconnect, motion off |
+| Keamanan dan batas | rate limit 429, payload terlalu besar, URL bebas ditolak |
+| Kosong dan error | daftar kosong, halaman tidak ada, persistensi setelah muat ulang |
+
+Satu catatan operasional: run portal memakai kredit akun, jadi check PR bisa merah karena saldo kredit habis, bukan karena ada regresi. Status per kasus dan video replay di portal membedakan keduanya, dan `pnpm test:e2e` tetap jadi bukti yang tidak bergantung akun pihak ketiga.
 
 ## 8. Rencana PR
 
@@ -159,11 +173,14 @@ Siklus merah ke hijau harus muncul **organik** dari perubahan fitur. Jika ada bu
 
 ## 10. Daftar pengecekan submission
 
-- Repo publik dengan README: aplikasi, live URL, apa yang dicakup suite.
-- PR dengan komentar atau status check TestSprite, test lolos.
-- Live URL publik yang bisa dibuka juri.
-- Email dan nama akun TestSprite yang sama dengan yang dipakai membuat suite.
-- Posting PR link, live URL, dan email di #hackathon-submissions sebelum deadline.
+| Item | Status |
+| --- | --- |
+| Repo publik dengan README yang menjelaskan aplikasi, live URL, dan cakupan suite | https://github.com/leksisgetme-arch/brownout |
+| Pull request dengan status check TestSprite | PR #1 dan #2 sudah merge; suite portal terpasang sebagai check yang memblokir PR |
+| Live URL publik yang bisa dibuka juri | https://brownout-860.netlify.app |
+| Akun demo tertulis | `commander@brownout.dev` dan `observer@brownout.dev`, password `Brownout123!` |
+| Email dan nama akun TestSprite sama dengan pembuat suite | dicatat di portal, bukan di repo |
+| Posting PR link, live URL, dan email di #hackathon-submissions | dilakukan pemilik proyek sebelum deadline |
 
 ## 11. Risiko
 

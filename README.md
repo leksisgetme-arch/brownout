@@ -6,22 +6,82 @@
 
 **Rehearse the bad day before it happens.**
 
-A deterministic incident-drill simulator: run a scenario, respond before the virtual tick limit,
-and get a score you can explain line by line — plus a report that tells you what to fix next.
+A deterministic incident-drill simulator: run an incident scenario, respond before the virtual tick
+limit, and get a score you can explain line by line — plus a report that names the next thing to fix.
 
 [![Live app](https://img.shields.io/badge/live-brownout--860.netlify.app-0f766e?style=flat-square)](https://brownout-860.netlify.app)
 [![Rulebook](https://img.shields.io/badge/in--app-rulebook-d97706?style=flat-square)](https://brownout-860.netlify.app/rulebook)
-[![Tests](https://img.shields.io/badge/unit%20tests-334%20passing-0f766e?style=flat-square)](#test-strategy)
-[![Built with](https://img.shields.io/badge/TanStack%20Start-React%2019-111827?style=flat-square)](#stack)
+[![Unit tests](https://img.shields.io/badge/unit%20tests-338%20passing-0f766e?style=flat-square)](#test-layers)
+[![Portal cases](https://img.shields.io/badge/portal%20cases-69-1d4ed8?style=flat-square)](#what-the-portal-suite-checks)
+[![Stack](https://img.shields.io/badge/TanStack%20Start-React%2019-111827?style=flat-square)](#stack)
 
-**Live:** https://brownout-860.netlify.app · **Source:** https://github.com/leksisgetme-arch/brownout
-**Built for:** TestSprite Hackathon Season 4
+**Live:** [brownout-860.netlify.app](https://brownout-860.netlify.app) ·
+**Source:** [leksisgetme-arch/brownout](https://github.com/leksisgetme-arch/brownout) ·
+**Rulebook:** [/rulebook](https://brownout-860.netlify.app/rulebook) ·
+**No-login demo:** [/demo](https://brownout-860.netlify.app/demo)
 
 </div>
 
 ---
 
-## The 60-second demo
+## Contents
+
+1. [The problem](#the-problem)
+2. [The product](#the-product)
+3. [How a drill is scored](#how-a-drill-is-scored)
+4. [Architecture](#architecture)
+5. [Testing](#testing)
+6. [Reference](#reference)
+7. [Deployment](#deployment)
+8. [Hackathon submission](#hackathon-submission-testsprite-season-4)
+9. [Project rules](#project-rules)
+10. [Decisions and assumptions](#decisions-and-assumptions)
+
+---
+
+## The problem
+
+On-call teams write runbooks and almost never rehearse them. When a real incident lands, the runbook
+is read for the first time under pressure: the mitigation order is guessed, the "is this even
+fixable?" question is answered by trial, and nobody can say afterwards whether the response was good
+or merely lucky.
+
+Brownout makes the runbook rehearsable. A scenario is a seed, a clock, a set of injected delivery
+failures and a reference solution. Running it produces a score computed from the response timeline,
+and the same run can be replayed after the runbook changes to see whether the team actually improved.
+
+## The product
+
+| | |
+| --- | --- |
+| **Who it is for** | On-call engineers and incident commanders who own a runbook and want evidence that it works. |
+| **What you do** | Start a drill, watch the incident timeline arrive as signed webhooks, pick mitigations before the tick limit. |
+| **What you get** | A graded report: score with every penalty named, MTTA/MTTR, dead letters, and a fix list for next time. |
+| **Why it is different** | The score is a pure function of a deterministic run, and every scenario ships with a reference solution, so "this runbook is winnable" is a fact instead of an opinion. |
+
+### The loop
+
+The app is built around one loop, not a dashboard full of widgets.
+
+```mermaid
+flowchart LR
+  T["Today<br/>readiness + next drill"] --> D["Drill room<br/>mitigations under a clock"]
+  D --> R["Report<br/>score + fix list"]
+  R -->|same seed| D
+  S["Library<br/>scenarios as runbooks"] -->|verify| P["Reference solution<br/>par score"]
+  P --> T
+```
+
+| Step | What the user sees | What backs it |
+| --- | --- | --- |
+| **Today** | Readiness = mean of the last five graded drills, a six-run trend, and one recommended scenario (never graded first, then the lowest score). | `src/lib/readiness.ts`, pure and unit tested |
+| **Drill room** | Tick countdown, live metrics against the engine's SLA thresholds, five mitigations, and immediate per-action feedback (correct / wrong / repeat) without revealing the required list. | `performAction` + `runScenario` replay |
+| **Report** | Score, grade, penalty breakdown, MTTA/MTTR, dead letters, and **what to fix next**. | `buildFixList` over the stored action timeline |
+| **Re-run** | One click back into the same scenario. Same seed, so the next score is comparable. | Deterministic engine |
+| **Library** | Every scenario can be verified: a reference solution is replayed through the scoring engine and reports *winnable*, the resolve tick, and the par score. | `verifyScenario` |
+| **Builder** | Name, seed, tick limit, baseline metrics, required actions, and the event schedule. A draft with required actions becomes a drill that can actually be won. | `validateScenario`, DRAFT → READY |
+
+### The 60-second demo
 
 | Role | Email | Password |
 | --- | --- | --- |
@@ -29,36 +89,15 @@ and get a score you can explain line by line — plus a report that tells you wh
 | Observer | `observer@brownout.dev` | `Brownout123!` |
 
 1. Open the live URL and sign in as the Commander.
-2. The dashboard opens on **Today**: readiness, a six-run trend, and the one drill to run next.
+2. The dashboard opens on **Today**: readiness, a trend, and the one drill to run next.
 3. Start it. The drill room asks for mitigation actions while the virtual clock runs.
-4. Finish or run out of time. The **report** gives a score, its exact penalties, and a fix list.
+4. Finish, or run out of time. The **report** gives a score, its exact penalties, and a fix list.
 5. Press **Run this scenario again** — same seed, so the comparison is fair.
 
-A guest can open any shared report without signing in and sees no action buttons (`FR-A4`).
-The public `/demo` page renders the engine output read-only, also with no login.
+A guest can open any shared report without signing in and sees no action buttons (`FR-A4`). The
+public `/demo` page renders the engine output read-only, also without a login.
 
----
-
-## What it is
-
-Brownout is a training tool for the worst hour of an on-call rotation. An admin writes an incident
-scenario, the engine replays it as a timeline of webhook deliveries with injected failures, and the
-responder has to pick the right mitigations before the tick limit. The result is not a vibe: it is a
-score computed by a pure function from a deterministic run.
-
-- **Deterministic.** Every run uses a seed and a virtual clock. Nothing in `src/engine` reads the wall
-  clock, `Math.random`, or the network.
-- **Explainable.** Every point has a name: MTTA, wrong actions, SLA windows, hints. The report shows
-  the arithmetic, and the engine replay is the authority.
-- **Useful afterwards.** The report ends with a fix list, and the scenario can be re-run with the same
-  seed. A scenario can also be verified against a reference solution, so "this runbook is winnable"
-  is a fact, not an opinion.
-- **Testable.** Stable error codes, 216 `data-testid` hooks, a test mode that advances the clock on
-  demand, and a full reference solution per scenario.
-
----
-
-## Screenshots
+### Screenshots
 
 | Today: readiness and the next drill | Report: score, fix list, re-run |
 | --- | --- |
@@ -74,30 +113,6 @@ score computed by a pure function from a deterministic run.
 
 ---
 
-## The product loop
-
-The app is built around one loop, not a dashboard full of widgets:
-
-```mermaid
-flowchart LR
-  T["Today<br/>readiness + next drill"] --> D["Drill room<br/>mitigations under a clock"]
-  D --> R["Report<br/>score + fix list"]
-  R -->|same seed| D
-  S["Library<br/>scenarios as runbooks"] -->|verify| P["Reference solution<br/>par score"]
-  P --> T
-```
-
-| Step | What the user sees | What it is backed by |
-| --- | --- | --- |
-| **Today** | Readiness = mean of the last five graded drills, a six-run trend, and one recommended scenario (never graded first, then the lowest last score). | `src/lib/readiness.ts`, pure and unit tested |
-| **Drill room** | Tick countdown, live metrics against the engine's SLA thresholds, five mitigations, and immediate per-action feedback (correct / wrong / repeat) without revealing the required list. | `performAction` + `runScenario` replay |
-| **Report** | Score, grade, penalty breakdown, MTTA/MTTR, dead letters, and **what to fix next**: missed actions, wrong actions, MTTA over grace, SLA windows. | `buildFixList` over the stored action timeline |
-| **Re-run** | One click back into the same scenario. Same seed, so the next score is comparable. | Deterministic engine |
-| **Library** | Each scenario can be verified: a reference solution (one required action per tick) is replayed through the scoring engine and reports *winnable*, the resolve tick, and the par score. | `verifyScenario` |
-| **Builder** | Name, seed, tick limit, baseline metrics (error rate, latency, queue depth), required actions, and the event schedule. A draft with required actions becomes a drill that can actually be won. | `validateScenario` + DRAFT → READY validation |
-
----
-
 ## How a drill is scored
 
 ```
@@ -110,15 +125,15 @@ score = 100
 
 Grades: **A** ≥ 90, **B** ≥ 75, **C** ≥ 60, **D** ≥ 40, **F** below 40.
 
-Worked example, from a real run in the screenshots: first action at tick 10, one wrong action, five
-SLA windows, no hints.
+Worked example, taken from a real run in the screenshots: first action at tick 10, one wrong action,
+five SLA windows, no hints.
 
 ```
 100 − (10 − 3) − (5 × 1) − (10 × 5) = 38 → F
 ```
 
-The report prints exactly those rows, and `/rulebook` documents the same weights. One source of
-truth: `src/engine/scoring.ts`.
+The report prints exactly those rows and `/rulebook` documents the same weights. One source of truth:
+`src/engine/scoring.ts`.
 
 ---
 
@@ -165,6 +180,8 @@ flowchart TB
   CLOCK --> DB
 ```
 
+### Stack
+
 | Layer | Choice |
 | --- | --- |
 | Framework | TanStack Start (React 19, TypeScript strict) |
@@ -199,9 +216,7 @@ scripts/             migrate and seed scripts
 tests/               Vitest unit tests, one file per requirement family
 ```
 
----
-
-## The drill lifecycle
+### The drill lifecycle
 
 ```mermaid
 stateDiagram-v2
@@ -222,9 +237,7 @@ Anything else answers `E-STATE-409` and leaves the state untouched. Mutations ar
 `UPDATE … WHERE state = …`, which is the optimistic lock: a double click loses the race and gets
 `E-STATE-409` instead of producing two states.
 
----
-
-## Delivery engine and the sandbox receiver
+### Delivery engine and the sandbox receiver
 
 ```mermaid
 sequenceDiagram
@@ -254,9 +267,7 @@ sequenceDiagram
 - The delivery log is persisted from the engine's own output up to the current tick, keyed by
   `(drill, seq)`, so replaying a tick is idempotent.
 
----
-
-## Determinism rules
+### Determinism rules
 
 1. No `Date.now`, `Math.random`, `performance.now`, or `new Date()` inside `src/engine`.
    `tests/determinism.test.ts` scans the folder and fails the build if one appears.
@@ -270,65 +281,45 @@ with a conditional `UPDATE … WHERE tick = <the tick just read>`. Pause and res
 a paused drill does not age. A minute cron (`GET /api/cron/tick`) is the backstop for drills nobody
 is watching.
 
----
-
-## Data model
+### Data model
 
 `users`, `sessions`, `scenarios`, `drills`, `drill_events`, `deliveries`, `actions`, `scores`,
 `share_links`, `rate_limit_hits`.
 
 Session tokens are 32 random bytes, stored only as a SHA-256 hash. Cookies are `httpOnly`,
 `SameSite=Lax`, and `Secure` in production. Sessions live in the database and expire after 7 days.
-A shared report is a random 16-byte token in `share_links`; it never exposes a session and
-expires 30 days after the link is created.
+A shared report is a random 16-byte token in `share_links`; it never exposes a session and expires
+30 days after the link is created.
 
 ---
 
-## Test strategy
+## Testing
 
-The suite is layered so each layer proves something the others cannot:
+The suite is layered so each layer proves something the others cannot.
 
-| Layer | What it proves | Where |
+### Test layers
+
+| Layer | Scale | What it proves |
 | --- | --- | --- |
-| Unit (337 tests) | Pure rules: state transitions, delivery retries, HMAC, scoring, builder limits, rate limiting, i18n parity, determinism | `tests/*.test.ts` |
-| Browser e2e (8 tests) | The real app over HTTP and a real database: sign-in, throttling, the clock, the console, mobile menu, guest report | `tests/e2e/app.e2e.mjs` |
-| TestSprite suite | Behaviour on every PR: breadth across roles, states and error codes; assertion depth on engine output | TestSprite portal, gated per PR |
-
-Run everything locally:
+| Unit (Vitest) | 338 tests in 21 files | Pure rules: state transitions, delivery retries, HMAC, scoring, builder limits, rate limiting, i18n parity, determinism. |
+| Browser e2e (`node:test` + Playwright) | 8 tests | The real app over HTTP and a real database: sign-in, throttling, the test-mode clock, the console, the mobile menu, the guest report. |
+| Portal suite (TestSprite) | 69 generated cases | Behaviour against a PR preview: roles, states, boundaries, `E-*` codes, report numbers. |
 
 ```bash
 pnpm check       # Biome lint + format
 pnpm typecheck   # tsc --noEmit
-pnpm test        # 334 unit tests
+pnpm test        # 338 unit tests
 pnpm test:e2e    # browser suite against a running app
 pnpm build       # production build
 ```
 
-### What the end-to-end suite targets
-
-The TestSprite GitHub App owns the behavioural suite; `ci.yml` deliberately runs only static
-analysis and unit tests so the two never duplicate work. The suite is organised around the same
-contracts the app exposes:
-
-| Family | What the cases assert |
-| --- | --- |
-| Auth and roles | Stable auth codes, throttled sign-in, observer gets `E-ROLE-403` on every mutation |
-| Scenario builder | Exact boundaries: name 3/60 vs 2/61, ticks 10/600 vs 9/601, 20 vs 21 events, 4096 vs 4097 bytes, sandbox target only |
-| State machine | Illegal transitions answer `E-STATE-409` and never change the stored state |
-| Delivery and receiver | seq order, HMAC signature, duplicate, out-of-order hold and release, retry ladder, dead letters |
-| Actions and scoring | Correct vs wrong vs repeat, `wrongActions` increments once, exact score from the breakdown |
-| Report | Report numbers equal the engine run; the fix list names the real failure; guests get no buttons |
-| Today and re-run | Readiness updates after a graded run, the recommendation changes, the second run is comparable |
-| Reference solution | Replay is deterministic: same scenario, same par score, twice |
-| i18n, a11y, mobile | EN/ID parity, keyboard focus, no horizontal scroll at 360 px |
-
-Every interactive element carries a `data-testid`, and every user-visible failure carries a stable
-code, so a generated test is never forced to match on prose (216 hooks today).
+`pnpm test:e2e` needs a reachable instance (`pnpm dev` in another terminal, or
+`BROWNOUT_BASE_URL=https://…`) plus a local Chrome (`CHROME_PATH` overrides the lookup).
 
 ### Requirement coverage
 
-Every functional requirement in PRD sections A–I is pinned by a test whose `describe` block names the
-requirement ID. The same table is rendered on `/rulebook` from `src/lib/coverage.ts`, so the UI and
+Every functional requirement in the PRD sections A–I is pinned by a test whose `describe` block names
+the requirement ID. The same table is rendered on `/rulebook` from `src/lib/coverage.ts`, so the UI and
 the docs cannot drift from the suite.
 
 | Requirement | What the test pins | Test file |
@@ -357,17 +348,38 @@ the docs cannot drift from the suite.
 | `FR-I2` | Five drill starts per minute, then `E-RATE-429` | `tests/fr-i-security.test.ts` |
 | `FR-I3` | Payload and event ceilings | `tests/fr-i-security.test.ts` |
 
-Boundary cases are tested at the exact edges: name 3/60 vs 2/61, ticks 10/600 vs 9/601, 20 vs 21
-events, payload 4096 vs 4097 bytes, MTTA at tick 3 vs 4, and the tick limit at `maxTicks` vs
-`maxTicks + 1`. The three curated scenarios also have documented exact scores for four fixed action
-timelines in `tests/fr-f-scoring.test.ts`.
+Boundary cases sit on the exact edge: name 3/60 vs 2/61, ticks 10/600 vs 9/601, 20 vs 21 events,
+payload 4096 vs 4097 bytes, MTTA at tick 3 vs 4, and the tick limit at `maxTicks` vs `maxTicks + 1`.
+The curated scenarios also have documented exact scores for four fixed action timelines in
+`tests/fr-f-scoring.test.ts`.
+
+### What the portal suite checks
+
+The TestSprite GitHub App owns the behavioural suite; `ci.yml` deliberately runs only static analysis
+and unit tests so the two never duplicate work. The 69 portal cases are organised around the same
+contracts the app exposes.
+
+| Family | What the cases assert |
+| --- | --- |
+| Auth and roles | Stable auth codes, throttled sign-in, observer gets `E-ROLE-403` on every mutation |
+| Scenario builder | Exact boundaries: name 3/60 vs 2/61, ticks 10/600 vs 9/601, 20 vs 21 events, 4096 vs 4097 bytes, sandbox target only |
+| State machine | Illegal transitions answer `E-STATE-409` and never change the stored state |
+| Delivery and receiver | seq order, HMAC signature, duplicate, out-of-order hold and release, retry ladder, dead letters |
+| Actions and scoring | Correct vs wrong vs repeat, `wrongActions` increments once, exact score from the breakdown |
+| Report | Report numbers equal the engine run; the fix list names the real failure; guests get no buttons |
+| Today and re-run | Readiness updates after a graded run, the recommendation changes, the second run is comparable |
+| Reference solution | Replay is deterministic: same scenario, same par score, twice |
+| i18n, a11y, mobile | EN/ID parity, keyboard focus, no horizontal scroll at 360 px |
+
+Every interactive element carries a `data-testid` (202 hooks today) and every user-visible failure
+carries a stable code, so a generated test never has to match on prose.
 
 ### Test mode and the virtual clock
 
 With `TEST_MODE=true` the wall clock is frozen: an open drill only moves when the operator clicks
-**Advance tick**, so a browser run can reproduce an exact tick instead of racing the clock. Production
-keeps the automatic one-tick-per-second clock. Both endpoints require `TEST_MODE=true` and the secret
-header. With test mode off they return `404`; with a wrong secret they return `401 E-TEST-401`.
+**Advance tick**, so a browser run can reproduce an exact tick instead of racing the clock. With the
+flag off, drills use the automatic one-tick-per-second clock. Either way the two test endpoints are
+secret-gated: `404` when the flag is off, `401 E-TEST-401` when the secret is wrong.
 
 ```bash
 curl -X POST http://localhost:3000/api/test/reset \
@@ -379,12 +391,14 @@ curl -X POST http://localhost:3000/api/test/advance-tick \
   -d '{"drillId":"<uuid>"}'
 ```
 
-`reset` deletes drills that belong to scenarios owned by demo accounts and clears rate-limit hits.
-It never deletes users or scenarios, and it cannot touch non-demo data.
+`reset` deletes drills that belong to scenarios owned by demo accounts and clears rate-limit hits. It
+never deletes users or scenarios, and it cannot touch non-demo data.
 
 ---
 
-## Stable error codes
+## Reference
+
+### Stable error codes
 
 | Code | HTTP | Meaning |
 | --- | --- | --- |
@@ -407,26 +421,13 @@ It never deletes users or scenarios, and it cannot touch non-demo data.
 
 `/rulebook` renders the same table in both languages.
 
----
-
-## Accessibility and i18n
-
-- Semantic landmarks (`header`, `nav`, `main`, `footer`), one `h1` per page, labelled form controls.
-- Visible focus ring on every interactive element; skip link to `#main`.
-- AA contrast on the dark palette.
-- Language switcher (EN/ID) writes a cookie and re-renders on the server; all copy lives in
-  `src/lib/i18n/messages.ts`, and a parity test fails if one dictionary drifts.
-- Action feedback is an `<output>` element, so screen readers announce it without stealing focus.
-
----
-
-## Getting started
+### Getting started
 
 ```bash
 pnpm install
 cp .env.example .env      # then paste your Neon URLs
 pnpm db:migrate           # applies drizzle/*.sql to DATABASE_URL_UNPOOLED
-pnpm seed                 # creates the two demo accounts and three curated scenarios
+pnpm seed                 # creates the two demo accounts and the curated scenarios
 pnpm dev                  # http://localhost:3000
 ```
 
@@ -441,7 +442,7 @@ database needs no code changes.
 | --- | --- | --- |
 | `DATABASE_URL` | yes | Pooled Neon connection used at runtime. |
 | `DATABASE_URL_UNPOOLED` | for migrations | Direct connection used by Drizzle Kit. |
-| `TEST_MODE` | no | `"true"` enables `POST /api/test/*`. Anything else disables it. |
+| `TEST_MODE` | no | `"true"` freezes the clock and enables `POST /api/test/*`. Anything else disables it. |
 | `TEST_SECRET` | when test mode is on | Minimum 16 characters. Sent as `x-brownout-test-secret`. |
 | `CRON_SECRET` | for the drill clock | Minimum 16 characters. Vercel Cron sends it as `Authorization: Bearer …`. Without it `/api/cron/tick` answers 404. |
 
@@ -457,7 +458,7 @@ variable and never prints its value (`E-ENV-500`).
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm check` | Biome lint + format check |
 | `pnpm test` | Vitest unit suite |
-| `pnpm test:e2e` | Browser suite against a running `pnpm dev` (Chrome, HTTP, real database) |
+| `pnpm test:e2e` | Browser suite against a running app (Chrome, HTTP, real database) |
 | `pnpm db:generate` | Generate a SQL migration from the Drizzle schema |
 | `pnpm db:migrate` | Apply pending migrations |
 | `pnpm seed` | Idempotent curated seed |
@@ -467,6 +468,15 @@ variable and never prints its value (`E-ENV-500`).
 `GET /api/health` returns `{ status, db, testMode, version }`. It always answers `200`; `status` is
 `degraded` when the database check fails, so a platform liveness probe stays green while the payload
 tells you what is broken.
+
+### Accessibility and i18n
+
+- Semantic landmarks (`header`, `nav`, `main`, `footer`), one `h1` per page, labelled form controls.
+- Visible focus ring on every interactive element; skip link to `#main`.
+- AA contrast on the dark palette.
+- Language switcher (EN/ID) writes a cookie and re-renders on the server; all copy lives in
+  `src/lib/i18n/messages.ts`, and a parity test fails if one dictionary drifts.
+- Action feedback is an `<output>` element, so screen readers announce it without stealing focus.
 
 ---
 
@@ -483,19 +493,37 @@ target forces a branch.
 Netlify sets `DEPLOY_TARGET=netlify` in `[build.environment]`; anything else (pushes to Vercel, local
 dev) keeps Nitro. Both plugins own the server output, so exactly one may be active per build.
 
-The per-minute drill clock has a single implementation — `GET /api/cron/tick` — and two triggers:
-the Vercel Cron entry in `vercel.json`, and the Netlify scheduled function in
+Continuous deployment runs from `.github/workflows/netlify.yml`: on every push to `main` it repeats
+the CI gate (Biome, `tsc`, Vitest), builds, and publishes with the same `netlify.toml` a local
+`netlify deploy --build --prod` uses. Every pull request additionally gets its own preview at
+`https://pr-<n>--brownout-860.netlify.app`.
+
+The per-minute drill clock has a single implementation — `GET /api/cron/tick` — and two triggers: the
+Vercel Cron entry in `vercel.json`, and the Netlify scheduled function in
 `netlify/functions/cron-tick.ts`, which calls the route with `CRON_SECRET`. Netlify scheduled
 functions run on published deploys only, never on deploy previews.
 
 ---
 
-## Built for TestSprite Hackathon Season 4
+## Hackathon submission (TestSprite Season 4)
 
-This project was designed around the S4 rubric: a real product, tests that run themselves, and one
-idea worth arguing for.
+Brownout is a submission to TestSprite Hackathon Season 4. The build is a working product first; this
+section is the map a reviewer needs.
 
-### Project quality (40)
+### Submission essentials
+
+| Item | Value |
+| --- | --- |
+| Repository | https://github.com/leksisgetme-arch/brownout |
+| Live app | https://brownout-860.netlify.app |
+| Demo accounts | `commander@brownout.dev` / `observer@brownout.dev`, password `Brownout123!` |
+| PR-gated suite | 69 cases in the TestSprite portal, run against the PR preview |
+| Local gate | Biome + `tsc` + 338 Vitest tests on every PR, plus 8 browser e2e tests |
+| Docs for the test agent | [`PRD.testsprite.md`](PRD.testsprite.md) — URL map, selector contract, error codes, invariants |
+
+### How the build maps to the rubric
+
+**Project quality (40)**
 
 - A seven-state drill machine with conditional transitions, not a CRUD form.
 - A delivery engine with signing, idempotency, a reorder window, and a retry ladder that ends in a
@@ -504,7 +532,7 @@ idea worth arguing for.
 - Determinism enforced by a test that scans `src/engine` for forbidden clock and randomness calls.
 - Both roles, both languages, keyboard access, and a guest-safe shared report.
 
-### Tests that run themselves (40)
+**Tests that run themselves (40)**
 
 - **Coverage breadth:** auth and roles, builder boundaries, state machine, delivery, scoring, report,
   today/re-run, reference solution, i18n and mobile.
@@ -515,19 +543,33 @@ idea worth arguing for.
 - **Holds the merge:** `ci.yml` runs lint, typecheck and unit tests on every pull request, and the
   behavioural suite runs from TestSprite against the PR preview, so a regression cannot land quietly.
 
-### Innovation (20)
+**Innovation (20)**
 
 The idea is that **an incident runbook should be executable**. Brownout makes a runbook a scenario
 with a seed, a clock, and a reference solution: you can prove it is winnable, replay it after a
 change, and compare the score across runs. The fix list closes the loop — the report does not just
 grade the responder, it names the next thing to practise.
 
+### Scope and limitations
+
+- **One receiver, by design.** Deliveries only ever reach the in-process sandbox receiver, never a
+  user-supplied URL, so the delivery engine cannot be used as an SSRF tool (`FR-I1`).
+- **Single workspace.** Roles are enforced, but there is no multi-tenancy, token rotation or billing.
+- **Polling, not SSE.** The live view polls; that survives serverless cold starts and is testable.
+- **TestSprite runs cost credits.** The PR check can go red because the account's credit balance is
+  spent rather than because a case regressed; per-case results and the video replay in the portal
+  distinguish the two.
+- **The local e2e suite is the always-on proof.** `pnpm test:e2e` runs without a third-party account,
+  against a running instance and a real database.
+
 ---
 
 ## Project rules
 
+These are the rules the work followed, kept here so the repository explains its own conventions.
+
 1. Verify every API against current official docs; never invent an API or flag.
-2. Small PRs, one concern each, conventional commits. Never push to `main`.
+2. Small PRs, one concern each, conventional commits.
 3. Never weaken or delete a test, and never edit seed/demo data to turn a check green.
 4. Determinism: virtual tick plus seeded randomness inside `src/engine`.
 5. Every user-visible error has a stable code; every interactive element has a `data-testid`.
@@ -542,8 +584,7 @@ grade the responder, it names the next thing to practise.
    dictionaries are complete and parity-tested.
 2. **Health returns 200 even when the database is down**, with `status: "degraded"`, so platform
    liveness probes stay meaningful.
-3. **Test endpoints return 404 when `TEST_MODE` is off** rather than 403, so production does not
-   advertise them.
+3. **Test endpoints return 404 when `TEST_MODE` is off** rather than 403, so they are not advertised.
 4. **`E-AUTH-005` was added** for duplicate signup emails; reusing `E-AUTH-002` would be misleading.
 5. **Two database drivers, no interactive transactions.** State changes are single conditional
    statements, so a double click cannot produce two states.
