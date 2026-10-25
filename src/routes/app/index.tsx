@@ -83,7 +83,7 @@ function DashboardPage() {
 		// The history and the console switch over as soon as a drill closes.
 		// Test mode closes nothing without a click, so a gentle poll keeps a
 		// parallel suite from stacking background loads on the same origin.
-		refetchInterval: scenarios[0]?.testMode ? 10_000 : 3000,
+		refetchInterval: scenarios[0]?.testMode ? 30_000 : 3000,
 	});
 
 	const isCommander = user?.role === "commander";
@@ -119,7 +119,7 @@ function DashboardPage() {
 		// poll loses nothing and keeps parallel browser cases off the hot path.
 		refetchInterval: activeDrill
 			? initial.incident?.detail.testMode
-				? 5000
+				? 15_000
 				: 1500
 			: false,
 	});

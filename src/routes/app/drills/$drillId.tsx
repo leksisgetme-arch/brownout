@@ -148,7 +148,7 @@ function DrillPage() {
 		// fast poll would only add queue pressure while a suite drives many
 		// browsers at once; every mutation above still refetches in place.
 		refetchInterval: (current) => {
-			if (initial.testMode) return 5000;
+			if (initial.testMode) return 15_000;
 			const latest = current.state.data;
 			return latest?.ok && latest.data.state === "RUNNING" ? 1000 : 2000;
 		},
