@@ -509,8 +509,7 @@ functions run on published deploys only, never on deploy previews.
 
 ## Hackathon submission (TestSprite Season 4)
 
-Brownout is a submission to TestSprite Hackathon Season 4. The build is a working product first; this
-section is the map a reviewer needs.
+Brownout is a submission to TestSprite Hackathon Season 4.
 
 ### Submission essentials
 
@@ -522,47 +521,6 @@ section is the map a reviewer needs.
 | PR-gated suite | 69 cases in the TestSprite portal, run against the PR preview |
 | Local gate | Biome + `tsc` + 338 Vitest tests on every PR, plus 8 browser e2e tests |
 | Docs for the test agent | [`PRD.testsprite.md`](PRD.testsprite.md) — URL map, selector contract, error codes, invariants |
-
-### How the build maps to the rubric
-
-**Project quality (40)**
-
-- A seven-state drill machine with conditional transitions, not a CRUD form.
-- A delivery engine with signing, idempotency, a reorder window, and a retry ladder that ends in a
-  dead letter.
-- A scoring engine whose every point is named, reused verbatim by the report and the rulebook.
-- Determinism enforced by a test that scans `src/engine` for forbidden clock and randomness calls.
-- Both roles, both languages, keyboard access, and a guest-safe shared report.
-
-**Tests that run themselves (40)**
-
-- **Coverage breadth:** auth and roles, builder boundaries, state machine, delivery, scoring, report,
-  today/re-run, reference solution, i18n and mobile.
-- **Assertion depth:** cases assert engine output (exact scores, sequence numbers, retry ticks,
-  `E-*` codes), not just that a heading rendered.
-- **Scenario design:** each family pins one invariant, and the boundary cases sit on the exact edge
-  (4096 vs 4097 bytes, 20 vs 21 events).
-- **Holds the merge:** `ci.yml` runs lint, typecheck and unit tests on every pull request, and the
-  behavioural suite runs from TestSprite against the PR preview, so a regression cannot land quietly.
-
-**Innovation (20)**
-
-The idea is that **an incident runbook should be executable**. Brownout makes a runbook a scenario
-with a seed, a clock, and a reference solution: you can prove it is winnable, replay it after a
-change, and compare the score across runs. The fix list closes the loop — the report does not just
-grade the responder, it names the next thing to practise.
-
-### Scope and limitations
-
-- **One receiver, by design.** Deliveries only ever reach the in-process sandbox receiver, never a
-  user-supplied URL, so the delivery engine cannot be used as an SSRF tool (`FR-I1`).
-- **Single workspace.** Roles are enforced, but there is no multi-tenancy, token rotation or billing.
-- **Polling, not SSE.** The live view polls; that survives serverless cold starts and is testable.
-- **TestSprite runs cost credits.** The PR check can go red because the account's credit balance is
-  spent rather than because a case regressed; per-case results and the video replay in the portal
-  distinguish the two.
-- **The local e2e suite is the always-on proof.** `pnpm test:e2e` runs without a third-party account,
-  against a running instance and a real database.
 
 ---
 
