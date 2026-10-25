@@ -378,7 +378,9 @@ carries a stable code, so a generated test never has to match on prose.
 
 With `TEST_MODE=true` the wall clock is frozen: an open drill only moves when the operator clicks
 **Advance tick**, so a browser run can reproduce an exact tick instead of racing the clock. With the
-flag off, drills use the automatic one-tick-per-second clock. Either way the two test endpoints are
+flag off, drills use the automatic one-tick-per-second clock. The public deployment keeps it off for
+the production context, so a visitor sees the real clock, while deploy previews keep it on so the
+portal suite can step the clock one tick at a time. Either way the two test endpoints are
 secret-gated: `404` when the flag is off, `401 E-TEST-401` when the secret is wrong.
 
 ```bash
