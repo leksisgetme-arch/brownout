@@ -30,9 +30,12 @@ const CHROME_CANDIDATES = [
 let browser;
 
 before(async () => {
-	const health = await fetch(`${BASE}/api/health`).catch(() => null);
-	assert.ok(
-		health?.ok,
+	const health = await fetch(`${BASE}/api/health`)
+		.then((response) => response.json())
+		.catch(() => null);
+	assert.equal(
+		health?.status,
+		"ok",
 		`No app answering at ${BASE}. Start it with "pnpm dev" first.`,
 	);
 
