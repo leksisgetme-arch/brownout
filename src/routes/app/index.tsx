@@ -81,7 +81,9 @@ function DashboardPage() {
 		...drillsQuery,
 		initialData: initial.drills,
 		// The history and the console switch over as soon as a drill closes.
-		refetchInterval: 3000,
+		// Test mode closes nothing without a click, so a gentle poll keeps a
+		// parallel suite from stacking background loads on the same origin.
+		refetchInterval: scenarios[0]?.testMode ? 10_000 : 3000,
 	});
 
 	const isCommander = user?.role === "commander";
@@ -113,7 +115,13 @@ function DashboardPage() {
 		},
 		initialData: initial.incident ?? undefined,
 		// One second = one tick, so the console follows the clock as it runs.
-		refetchInterval: activeDrill ? 1500 : false,
+		// In test mode that clock waits for the operator, so a slower console
+		// poll loses nothing and keeps parallel browser cases off the hot path.
+		refetchInterval: activeDrill
+			? initial.incident?.detail.testMode
+				? 5000
+				: 1500
+			: false,
 	});
 	const incidentData = incident.data ?? initial.incident;
 
