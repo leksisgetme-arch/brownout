@@ -4,7 +4,7 @@ import {
 	useNavigate,
 	useRouter,
 } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	Button,
 	Card,
@@ -34,6 +34,11 @@ function LoginPage() {
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [pending, setPending] = useState(false);
+	// The form is server rendered, so its submit handler only exists after
+	// hydration. Until then the browser would POST the form to /login natively
+	// and silently reload this page, so keep the button disabled.
+	const [hydrated, setHydrated] = useState(false);
+	useEffect(() => setHydrated(true), []);
 	const [error, setError] = useState<{ code: string; message: string } | null>(
 		search.error
 			? { code: search.error, message: errorMessage(locale, search.error) }
@@ -124,7 +129,7 @@ function LoginPage() {
 
 					<Button
 						type="submit"
-						disabled={pending}
+						disabled={pending || !hydrated}
 						data-testid="login-submit"
 						className="w-full"
 					>

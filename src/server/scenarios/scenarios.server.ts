@@ -16,6 +16,7 @@ import {
 	requireSessionUser,
 } from "#/server/auth/guards.server";
 import { getDb, schema } from "#/server/db/client.server";
+import { isTestMode } from "#/server/env";
 import { failResult, okResult, type ServerResult } from "#/server/results";
 
 export interface ScenarioListItem {
@@ -30,6 +31,8 @@ export interface ScenarioListItem {
 	curated: boolean;
 	ownerEmail: string;
 	updatedAt: string;
+	/** Test mode allows a fresh drill even while another one is open. */
+	testMode: boolean;
 }
 
 export interface ScenarioDetail {
@@ -45,6 +48,9 @@ export interface ScenarioDetail {
 	/** A scenario can only have one open drill; the page opens it instead of
 	 * offering a Start button that the server would reject. */
 	openDrill: { id: string; state: string; tick: number } | null;
+	/** Test mode lifts the single-open-drill rule so parallel cases can each
+	 * start their own clock from the same scenario. */
+	testMode: boolean;
 }
 
 export interface ScenarioVerification {
@@ -65,6 +71,14 @@ export interface CreateScenarioInput {
 	seed: number;
 	maxTicks: number;
 	eventsJson: string;
+	/** Baseline metrics the drill starts from; the builder exposes these. */
+	metrics?: {
+		errorRate: number;
+		latencyMs: number;
+		queueDepth: number;
+	};
+	/** Actions the operator must take to resolve the drill. */
+	requiredActions?: string[];
 }
 
 export async function listScenarios(): Promise<ScenarioListItem[]> {
@@ -101,6 +115,7 @@ export async function listScenarios(): Promise<ScenarioListItem[]> {
 		curated: row.definition?.curated === true,
 		ownerEmail: row.ownerEmail,
 		updatedAt: row.updatedAt.toISOString(),
+		testMode: isTestMode(),
 	}));
 }
 
@@ -156,6 +171,7 @@ export async function getScenario(
 		createdAt: row.createdAt.toISOString(),
 		updatedAt: row.updatedAt.toISOString(),
 		openDrill: open ?? null,
+		testMode: isTestMode(),
 	});
 }
 
@@ -200,6 +216,8 @@ export async function updateScenario(
 		seed: input.seed,
 		maxTicks: input.maxTicks,
 		events: events.data,
+		metrics: input.metrics,
+		requiredActions: input.requiredActions,
 		curated: false,
 	});
 	if (!validated.ok) {
@@ -254,6 +272,8 @@ export async function createScenario(
 		seed: input.seed,
 		maxTicks: input.maxTicks,
 		events: events.data,
+		metrics: input.metrics,
+		requiredActions: input.requiredActions,
 		curated: false,
 	});
 

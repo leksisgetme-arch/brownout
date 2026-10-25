@@ -175,7 +175,18 @@ const en = {
 		"Same seed and same actions always produce the same score.",
 	"scenario.maxTicks": "Tick limit",
 	"scenario.maxTicksHint": "10 to 600 virtual ticks.",
-	"scenario.definition": "Definition (JSON)",
+	"scenario.definition": "Events (JSON array)",
+	"scenario.metrics": "Baseline metrics",
+	"scenario.metricsHint":
+		"The load the incident starts from. Mitigations lower these over time.",
+	"scenario.errorRate": "Error rate (%)",
+	"scenario.latency": "Latency (ms)",
+	"scenario.queueDepth": "Queue depth",
+	"scenario.requiredActions": "Required actions",
+	"scenario.requiredActionsHint":
+		"A drill resolves only after every required action is applied.",
+	"scenario.noRequiredActions":
+		"No required action: the drill resolves on the first tick and scores 0. Pick at least one.",
 	"scenario.create": "Create draft",
 	"scenario.created": "Saves as a draft — publish it to make it playable.",
 	"scenario.owner": "Owner",
@@ -237,6 +248,10 @@ const en = {
 	"report.mttr": "MTTR (ticks)",
 	"report.mttrUnresolved":
 		"No MTTR: the drill never recovered before the tick limit.",
+	"report.shareExpiry":
+		"Anyone with this link can read the report until {date}.",
+	"report.scoreFloor":
+		"Penalties add up to more than the base score, so the total is capped at the 0-100 floor.",
 	"report.deadLetters": "Dead-letter webhooks",
 	"report.emptyDeadLetters": "No dead-letter webhooks",
 	"report.notFound": "Report not found",
@@ -474,7 +489,7 @@ const en = {
 	"error.E-BLD-NAME": "Name must be 3 to 60 characters.",
 	"error.E-BLD-TICKS": "Tick limit must be between 10 and 600.",
 	"error.E-BLD-EVENTS": "A scenario can hold at most 20 events.",
-	"error.E-BLD-JSON": "Payload must be valid JSON.",
+	"error.E-BLD-JSON": "Events must be a JSON array.",
 	"error.E-BLD-PAYLOAD": "Payload must be a JSON object of at most 4 KB.",
 	"error.E-BLD-TARGET": "Events must target the built-in sandbox receiver.",
 	"error.E-BLD-FAILURE": "Unknown failure mode.",
@@ -668,7 +683,18 @@ const id: Record<MessageKey, string> = {
 		"Seed dan aksi yang sama selalu menghasilkan skor yang sama.",
 	"scenario.maxTicks": "Batas tick",
 	"scenario.maxTicksHint": "10 sampai 600 tick virtual.",
-	"scenario.definition": "Definisi (JSON)",
+	"scenario.definition": "Event (array JSON)",
+	"scenario.metrics": "Metrik dasar",
+	"scenario.metricsHint":
+		"Beban awal insiden. Aksi mitigasi menurunkannya seiring waktu.",
+	"scenario.errorRate": "Laju error (%)",
+	"scenario.latency": "Latensi (ms)",
+	"scenario.queueDepth": "Kedalaman antrean",
+	"scenario.requiredActions": "Aksi wajib",
+	"scenario.requiredActionsHint":
+		"Drill hanya selesai setelah semua aksi wajib dijalankan.",
+	"scenario.noRequiredActions":
+		"Belum ada aksi wajib: drill selesai di tick pertama dan skornya 0. Pilih minimal satu.",
 	"scenario.create": "Buat draft",
 	"scenario.created":
 		"Tersimpan sebagai draft — publikasikan agar bisa dimainkan.",
@@ -730,6 +756,10 @@ const id: Record<MessageKey, string> = {
 	"report.mttr": "MTTR (tick)",
 	"report.mttrUnresolved":
 		"Tidak ada MTTR: drill berakhir tanpa pulih sebelum batas tick.",
+	"report.shareExpiry":
+		"Siapa pun yang memegang tautan ini bisa membaca laporan sampai {date}.",
+	"report.scoreFloor":
+		"Total penalti melebihi skor dasar, jadi skor akhir dibatasi pada rentang 0-100.",
 	"report.deadLetters": "Webhook dead-letter",
 	"report.emptyDeadLetters": "Tidak ada webhook dead-letter",
 	"report.notFound": "Laporan tidak ditemukan",
@@ -969,7 +999,7 @@ const id: Record<MessageKey, string> = {
 	"error.E-BLD-NAME": "Nama harus 3 sampai 60 karakter.",
 	"error.E-BLD-TICKS": "Batas tick harus antara 10 dan 600.",
 	"error.E-BLD-EVENTS": "Skenario maksimal memuat 20 event.",
-	"error.E-BLD-JSON": "Payload harus JSON yang valid.",
+	"error.E-BLD-JSON": "Event harus berupa array JSON.",
 	"error.E-BLD-PAYLOAD": "Payload harus objek JSON maksimal 4 KB.",
 	"error.E-BLD-TARGET": "Event harus menargetkan receiver sandbox bawaan.",
 	"error.E-BLD-FAILURE": "Tipe kegagalan tidak dikenal.",

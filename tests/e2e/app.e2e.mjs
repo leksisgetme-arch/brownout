@@ -158,7 +158,7 @@ test("sixth failed sign-in is throttled with E-RATE-429", async () => {	const pa
 	}
 });
 
-test("commander starts a drill and the virtual clock runs on its own", async () => {
+test("commander starts a drill and advances the test-mode clock", async () => {
 	const page = await browser.newPage();
 	try {
 		await signIn(page, COMMANDER.email, COMMANDER.password);
@@ -181,18 +181,15 @@ test("commander starts a drill and the virtual clock runs on its own", async () 
 
 		await page.waitForTimeout(600);
 		const first = await tick();
-		// Each poll is several sequential database round trips, so the clock is
-		// observed with a deadline instead of a fixed window. The assertion is
-		// still "it moved by itself", only the wait is patient.
-		let second = first;
-		const deadline = Date.now() + 30_000;
-		while (second <= first && Date.now() < deadline) {
-			await page.waitForTimeout(500);
-			second = await tick();
-		}
-		assert.ok(
-			second > first,
-			`expected the tick to advance by itself, saw ${first} -> ${second}`,
+		// Test mode freezes the wall clock so a run is reproducible; the
+		// Advance tick control is the only thing that moves it.
+		await page.click('[data-testid="advance-tick"]');
+		await page.waitForTimeout(1200);
+		const second = await tick();
+		assert.equal(
+			second,
+			first + 1,
+			`expected one manual tick, saw ${first} -> ${second}`,
 		);
 
 		await page.click('[data-testid="pause-drill"]');

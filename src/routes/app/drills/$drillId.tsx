@@ -125,7 +125,10 @@ function DrillPage() {
 	const [error, setError] = useState<{ code: string; message: string } | null>(
 		null,
 	);
-	const [token, setToken] = useState<string | null>(null);
+	const [share, setShare] = useState<{
+		token: string;
+		expiresAt: string;
+	} | null>(null);
 	const [feedback, setFeedback] = useState<{
 		action: ActionType;
 		correct: boolean;
@@ -141,7 +144,11 @@ function DrillPage() {
 		initialData: { ok: true as const, data: initial },
 		// FR-H1: polling is the stable transport on Vercel serverless. A running
 		// drill polls every second, so the virtual clock is visible as it ticks.
+		// Test mode parks that clock behind the Advance tick control, so here the
+		// fast poll would only add queue pressure while a suite drives many
+		// browsers at once; every mutation above still refetches in place.
 		refetchInterval: (current) => {
+			if (initial.testMode) return 15_000;
 			const latest = current.state.data;
 			return latest?.ok && latest.data.state === "RUNNING" ? 1000 : 2000;
 		},
@@ -157,8 +164,8 @@ function DrillPage() {
 	const motionOff = search.motion === "off";
 
 	const shareUrl =
-		token && typeof window !== "undefined"
-			? `${window.location.origin}/report/${token}`
+		share && typeof window !== "undefined"
+			? `${window.location.origin}/report/${share.token}`
 			: null;
 
 	async function run(
@@ -199,7 +206,7 @@ function DrillPage() {
 		).length;
 		try {
 			const result = await performActionFn({
-				data: { id: drill.id, action },
+				data: { id: drill.id, action, tick: drill.tick },
 			});
 			if (!result.ok) {
 				setError({
@@ -229,7 +236,7 @@ function DrillPage() {
 		setError(null);
 		try {
 			const result = await createShareLinkFn({ data: { drillId: drill.id } });
-			if (result.ok) setToken(result.data.token);
+			if (result.ok) setShare(result.data);
 			else
 				setError({
 					code: result.code,
@@ -540,10 +547,20 @@ function DrillPage() {
 									</a>
 								</p>
 							) : null}
-							{drill.state === "EVALUATED" && token ? (
+							{share ? (
+								<p
+									className="text-[11px] text-ink-3"
+									data-testid="share-link-expiry"
+								>
+									{t("report.shareExpiry", {
+										date: formatDateTime(share.expiresAt, locale),
+									})}
+								</p>
+							) : null}
+							{drill.state === "EVALUATED" && share ? (
 								<Link
 									to="/report/$token"
-									params={{ token }}
+									params={{ token: share.token }}
 									data-testid="open-report"
 									className="inline-block text-xs text-amber underline"
 								>

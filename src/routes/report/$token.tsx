@@ -37,6 +37,18 @@ function ReportPage() {
 			entry.kind === "delivery" && entry.status === "dead_letter",
 	);
 	const breakdown: ScoreBreakdown | null = drill.score?.breakdown ?? null;
+	// The engine floors the total at 0. When the penalties exceed the base, the
+	// rows cannot add up to the printed total; say so instead of leaving the
+	// reader with arithmetic that looks broken.
+	const penaltySum = breakdown
+		? breakdown.mttaPenalty +
+			breakdown.wrongActionPenalty +
+			breakdown.slaPenalty +
+			breakdown.hintPenalty
+		: 0;
+	const totalIsFloored = breakdown
+		? breakdown.base - penaltySum < 0 && breakdown.total === 0
+		: false;
 	const mttr = drill.mttrTicks;
 	const isCommander = user?.role === "commander";
 	const neverActed = drill.firstActionTick === null;
@@ -185,6 +197,14 @@ function ReportPage() {
 							}
 						/>
 					</dl>
+					{totalIsFloored ? (
+						<p
+							className="mt-2 text-xs text-ink-3"
+							data-testid="report-score-floor-note"
+						>
+							{t("report.scoreFloor")}
+						</p>
+					) : null}
 
 					<dl className="mt-4">
 						<DataRow

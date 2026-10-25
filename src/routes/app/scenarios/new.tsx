@@ -12,6 +12,7 @@ import {
 	inputClass,
 	PageHeader,
 } from "#/components/ui";
+import { ACTION_TYPES, type ActionType } from "#/engine";
 import { errorMessage } from "#/lib/i18n/messages";
 import { useI18n } from "#/lib/i18n/use-i18n";
 import { requireCommander } from "#/server/auth/guards";
@@ -33,6 +34,10 @@ function NewScenarioPage() {
 	const [seed, setSeed] = useState("42");
 	const [maxTicks, setMaxTicks] = useState("120");
 	const [eventsJson, setEventsJson] = useState("[]");
+	const [errorRate, setErrorRate] = useState("2");
+	const [latencyMs, setLatencyMs] = useState("180");
+	const [queueDepth, setQueueDepth] = useState("4");
+	const [requiredActions, setRequiredActions] = useState<ActionType[]>([]);
 	const [pending, setPending] = useState(false);
 	const [errors, setErrors] = useState<
 		Array<{ code: string; message: string }>
@@ -49,6 +54,12 @@ function NewScenarioPage() {
 					seed: Number(seed),
 					maxTicks: Number(maxTicks),
 					eventsJson,
+					metrics: {
+						errorRate: Number(errorRate) / 100,
+						latencyMs: Number(latencyMs),
+						queueDepth: Number(queueDepth),
+					},
+					requiredActions,
 				},
 			});
 
@@ -167,6 +178,98 @@ function NewScenarioPage() {
 							/>
 						</Field>
 					</div>
+
+					<fieldset className="space-y-3">
+						<legend className="text-sm font-medium text-ink">
+							{t("scenario.metrics")}
+						</legend>
+						<p className="text-xs text-ink-3">{t("scenario.metricsHint")}</p>
+						<div className="grid gap-4 sm:grid-cols-3">
+							<Field
+								label={t("scenario.errorRate")}
+								htmlFor="scenario-error-rate"
+							>
+								<input
+									id="scenario-error-rate"
+									name="errorRate"
+									type="number"
+									min={0}
+									max={100}
+									step="0.1"
+									value={errorRate}
+									onChange={(event) => setErrorRate(event.target.value)}
+									className={inputClass}
+									data-testid="scenario-error-rate"
+								/>
+							</Field>
+							<Field label={t("scenario.latency")} htmlFor="scenario-latency">
+								<input
+									id="scenario-latency"
+									name="latencyMs"
+									type="number"
+									min={0}
+									value={latencyMs}
+									onChange={(event) => setLatencyMs(event.target.value)}
+									className={inputClass}
+									data-testid="scenario-latency"
+								/>
+							</Field>
+							<Field
+								label={t("scenario.queueDepth")}
+								htmlFor="scenario-queue-depth"
+							>
+								<input
+									id="scenario-queue-depth"
+									name="queueDepth"
+									type="number"
+									min={0}
+									value={queueDepth}
+									onChange={(event) => setQueueDepth(event.target.value)}
+									className={inputClass}
+									data-testid="scenario-queue-depth"
+								/>
+							</Field>
+						</div>
+					</fieldset>
+
+					<fieldset className="space-y-2">
+						<legend className="text-sm font-medium text-ink">
+							{t("scenario.requiredActions")}
+						</legend>
+						<p className="text-xs text-ink-3">
+							{t("scenario.requiredActionsHint")}
+						</p>
+						<div className="grid gap-2 sm:grid-cols-2">
+							{ACTION_TYPES.map((action) => (
+								<label
+									key={action}
+									className="flex items-center gap-2 rounded border border-line px-3 py-2 text-sm text-ink-2"
+								>
+									<input
+										type="checkbox"
+										checked={requiredActions.includes(action)}
+										onChange={(event) =>
+											setRequiredActions((current) =>
+												event.target.checked
+													? [...current, action]
+													: current.filter((entry) => entry !== action),
+											)
+										}
+										data-testid={`scenario-action-${action}`}
+									/>
+									{t(`drill.action.${action}`)}
+								</label>
+							))}
+						</div>
+						{requiredActions.length === 0 ? (
+							<p
+								className="text-xs text-amber"
+								data-testid="scenario-no-required-actions"
+							>
+								{t("scenario.noRequiredActions")}
+							</p>
+						) : null}
+					</fieldset>
 
 					<Field label={t("scenario.definition")} htmlFor="scenario-events">
 						<textarea

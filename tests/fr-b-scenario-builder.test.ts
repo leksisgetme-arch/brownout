@@ -7,6 +7,7 @@ import {
 	SANDBOX_RECEIVER_ID,
 	TICKS_MAX,
 	TICKS_MIN,
+	runScenario,
 	validateScenario,
 	type ScenarioInput,
 } from "#/engine";
@@ -218,5 +219,44 @@ describe("FR-B7 DRAFT to READY needs a valid scenario", () => {
 			"first",
 			"second",
 		]);
+	});
+});
+
+describe("FR-B8 builder fields make a real drill", () => {
+	it("keeps the metrics the builder sends", () => {
+		const metrics = { errorRate: 0.2, latencyMs: 1800, queueDepth: 900 };
+		const result = validateScenario(input({ metrics }));
+		expect(result.ok).toBe(true);
+		if (result.ok) expect(result.value.metrics).toEqual(metrics);
+	});
+
+	it("keeps only known required actions", () => {
+		const result = validateScenario(
+			input({ requiredActions: ["scale_up", "not_an_action"] }),
+		);
+		expect(result.ok).toBe(true);
+		if (result.ok) expect(result.value.requiredActions).toEqual(["scale_up"]);
+	});
+
+	it("resolves with a score when the operator applies every required action", () => {
+		const result = validateScenario(
+			input({
+				metrics: { errorRate: 0.2, latencyMs: 1800, queueDepth: 900 },
+				requiredActions: ["scale_up", "enable_circuit_breaker"],
+			}),
+		);
+		if (!result.ok) throw new Error("expected a valid scenario");
+
+		const run = runScenario({
+			definition: result.value,
+			actions: [
+				{ tick: 2, type: "scale_up" },
+				{ tick: 2, type: "enable_circuit_breaker" },
+			],
+		});
+
+		expect(run.finalState).toBe("EVALUATED");
+		expect(run.mttrTicks).toBe(2);
+		expect(run.score.total).toBeGreaterThan(0);
 	});
 });

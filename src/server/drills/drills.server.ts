@@ -340,6 +340,12 @@ async function consumeStartBudget(
 	const decision = evaluateRateLimit(
 		recent.map((hit) => hit.createdAt.getTime()),
 		Date.now(),
+		// Parallel browser cases each start their own drill. The five-per-minute
+		// budget is a production guard (FR-I2), so test mode raises the ceiling
+		// instead of turning a suite run into a wall of E-RATE-429.
+		isTestMode()
+			? { limit: 1_000, windowMs: RATE_LIMIT_WINDOW_MS }
+			: { limit: 5, windowMs: RATE_LIMIT_WINDOW_MS },
 	);
 
 	if (!decision.allowed) {
@@ -387,23 +393,26 @@ export async function startDrill(
 	}
 
 	// One open drill per scenario: a second click opens a second clock for the
-	// same incident, which makes the dashboard read like two realities.
-	const [open] = await db
-		.select({ id: schema.drills.id })
-		.from(schema.drills)
-		.where(
-			and(
-				eq(schema.drills.scenarioId, scenario.id),
-				inArray(schema.drills.state, ["RUNNING", "PAUSED"]),
-			),
-		)
-		.limit(1);
+	// same incident, which makes the dashboard read like two realities. Test
+	// mode lifts the rule so parallel browser cases can each own a clock.
+	if (!isTestMode()) {
+		const [open] = await db
+			.select({ id: schema.drills.id })
+			.from(schema.drills)
+			.where(
+				and(
+					eq(schema.drills.scenarioId, scenario.id),
+					inArray(schema.drills.state, ["RUNNING", "PAUSED"]),
+				),
+			)
+			.limit(1);
 
-	if (open) {
-		return failResult(
-			"E-STATE-409",
-			"A drill is already open for this scenario. Open it or reset it first.",
-		);
+		if (open) {
+			return failResult(
+				"E-STATE-409",
+				"A drill is already open for this scenario. Open it or reset it first.",
+			);
+		}
 	}
 
 	const [drill] = await db
@@ -484,6 +493,9 @@ export async function resetDrill(
 export async function performAction(
 	drillId: string,
 	action: string,
+	/** Tick the operator saw when they clicked. Optional so older callers and
+	 * direct API calls keep working. */
+	tickAtClick?: number,
 ): Promise<
 	ServerResult<{
 		state: DrillState;
@@ -516,15 +528,24 @@ export async function performAction(
 		return failResult(result.code, result.reason);
 	}
 
+	// Record the action at the tick the operator saw. A slow round trip must not
+	// inflate MTTA, and the drill clock may have advanced while the request was
+	// in flight. The server tick is still an upper bound, so a client cannot
+	// claim an action happened in the future.
+	const actionTick = Math.max(
+		0,
+		Math.min(Math.trunc(tickAtClick ?? context.tick), context.tick),
+	);
+
 	const db = getDb();
 	await db.insert(schema.actions).values({
 		drillId,
 		type: action,
-		tick: context.tick,
+		tick: actionTick,
 		correct: result.correct,
 		penalty: result.correct ? 0 : WRONG_ACTION_PENALTY,
 	});
-	await appendEvent(drillId, context.tick, "action.performed", {
+	await appendEvent(drillId, actionTick, "action.performed", {
 		action,
 		correct: result.correct,
 	});
@@ -536,7 +557,7 @@ export async function performAction(
 		});
 		if (resolved) {
 			state = "RESOLVED";
-			await appendEvent(drillId, context.tick, "drill.resolved");
+			await appendEvent(drillId, actionTick, "drill.resolved");
 			await evaluateDrill(drillId);
 			state = "EVALUATED";
 		}
@@ -676,6 +697,11 @@ async function catchUpClock(drillId: string): Promise<ClockOutcome> {
 		.limit(1);
 
 	if (!row || row.state !== "RUNNING") return "idle";
+
+	// Test mode clock is operator-driven. The Advance tick control is the only
+	// thing that moves it, so an end-to-end run can reproduce an exact tick
+	// instead of racing the wall clock between two clicks.
+	if (isTestMode()) return "idle";
 
 	// The tick limit was already used up on an earlier read: out of time.
 	if (row.tick >= row.maxTicks) {
@@ -962,23 +988,48 @@ export async function buildDrillDetail(
 }
 
 /** Report view: read-only, no session required, no action buttons (FR-A4). */
+/** Share links are public report URLs, so they expire. Thirty days is long
+ * enough for a retro and short enough that a leaked link stops working. */
+const SHARE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 export async function createShareLink(
 	drillId: string,
-): Promise<ServerResult<{ token: string }>> {
+): Promise<ServerResult<{ token: string; expiresAt: string }>> {
 	await requireCommanderUser();
 	const db = getDb();
 
 	const [existing] = await db
-		.select({ token: schema.shareLinks.token })
+		.select({
+			token: schema.shareLinks.token,
+			expiresAt: schema.shareLinks.expiresAt,
+		})
 		.from(schema.shareLinks)
 		.where(eq(schema.shareLinks.drillId, drillId))
 		.limit(1);
 
-	if (existing) return okResult({ token: existing.token });
+	if (existing) {
+		// Older rows predate the expiry rule; give them one on the next share.
+		if (existing.expiresAt) {
+			return okResult({
+				token: existing.token,
+				expiresAt: existing.expiresAt.toISOString(),
+			});
+		}
+		const expiresAt = new Date(Date.now() + SHARE_LINK_TTL_MS);
+		await db
+			.update(schema.shareLinks)
+			.set({ expiresAt })
+			.where(eq(schema.shareLinks.token, existing.token));
+		return okResult({
+			token: existing.token,
+			expiresAt: expiresAt.toISOString(),
+		});
+	}
 
 	const token = randomBytes(16).toString("hex");
-	await db.insert(schema.shareLinks).values({ drillId, token });
-	return okResult({ token });
+	const expiresAt = new Date(Date.now() + SHARE_LINK_TTL_MS);
+	await db.insert(schema.shareLinks).values({ drillId, token, expiresAt });
+	return okResult({ token, expiresAt: expiresAt.toISOString() });
 }
 
 export async function getReportByToken(
