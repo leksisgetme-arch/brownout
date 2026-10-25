@@ -99,17 +99,31 @@ public `/demo` page renders the engine output read-only, also without a login.
 
 ### Screenshots
 
-| Today: readiness and the next drill | Report: score, fix list, re-run |
-| --- | --- |
-| <img src="publics/dashboard-today.png" alt="Dashboard with readiness, trend and next drill" /> | <img src="publics/report-artifact.png" alt="Post-incident report with fix list and re-run" /> |
+Every screen below is a real run of the app against a real database, not a mockup.
 
-| Drill room: controls, metrics, delivery log | Reference solution: can this scenario be won? |
-| --- | --- |
-| <img src="publics/drill-detaile.png" alt="Drill room with controls, actions, metrics and delivery log" /> | <img src="publics/verify-scenario.png" alt="Scenario page with verified reference solution" /> |
+**Today — readiness, trend, and the one drill to run next**
 
-| Live incident console | Deterministic by design |
-| --- | --- |
-| <img src="publics/dagsboard.png" alt="Live incident console with SLA pressure chart and event feed" /> | <img src="publics/stc.png" alt="Landing page scrubbing the deterministic drill clock" /> |
+<img src="publics/dashboard-today.png" alt="Dashboard with readiness, a six-run trend and the next drill" width="100%" />
+
+**Drill room — mitigations under a clock, live metrics, delivery log**
+
+<img src="publics/drill-detaile.png" alt="Drill room with controls, actions, live metrics and the delivery log" width="100%" />
+
+**Report — score with every penalty named, fix list, and a same-seed re-run**
+
+<img src="publics/report-artifact.png" alt="Post-incident report with the penalty breakdown, fix list and re-run button" width="100%" />
+
+**Library — is this runbook actually winnable?**
+
+<img src="publics/verify-scenario.png" alt="Scenario page with the verified reference solution and par score" width="100%" />
+
+**Incident console — SLA pressure and the webhook feed**
+
+<img src="publics/dagsboard.png" alt="Live incident console with SLA pressure chart and the delivery feed" width="100%" />
+
+**Landing — the deterministic clock, scrubbed by scrolling**
+
+<img src="publics/stc.png" alt="Landing page scrubbing the deterministic drill clock" width="100%" />
 
 ---
 
