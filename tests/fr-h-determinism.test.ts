@@ -36,6 +36,26 @@ describe("FR-H determinism of a whole run", () => {
 		expect(a.score.total).toBe(b.score.total);
 	});
 
+	it("replays actions performed at tick 0 instead of dropping them", () => {
+		const entry = BUILTIN_SCENARIOS[2];
+		if (!entry) throw new Error("missing scenario");
+		const run = runScenario({
+			definition: entry.definition,
+			actions: [
+				{ tick: 0, type: "restart_worker" },
+				{ tick: 0, type: "failover_db" },
+			],
+		});
+
+		const actions = run.log.filter((line) => line.kind === "action");
+		expect(actions).toHaveLength(2);
+		expect(run.wrongActions).toBe(1);
+		expect(run.score.wrongActionPenalty).toBe(5);
+		expect(run.mttaTicks).toBe(0);
+		expect(run.finalState).toBe("EVALUATED");
+		expect(run.score.total).toBe(95);
+	});
+
 	it("changes the log when the seed changes", () => {
 		const base = validateScenario({
 			name: "Seed drift",

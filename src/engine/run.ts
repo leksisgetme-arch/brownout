@@ -173,6 +173,46 @@ export function runScenario(options: RunOptions): RunResult {
 		}
 	}
 
+	// Actions performed before the first tick replay where the operator performed
+	// them: the test-mode clock only moves on the Advance control, so a case can
+	// legitimately act at tick 0. Dropping those actions would hide both the
+	// wrong-action penalty and the required mitigations from the replay score.
+	for (const action of planned.filter((entry) => entry.tick <= 0)) {
+		const result = applyAction(progress, action.type);
+		if (result.ok) {
+			progress = result.progress;
+		}
+		log.push({
+			kind: "action",
+			tick: 0,
+			action: action.type,
+			correct: result.ok ? result.correct : false,
+			code: result.ok ? null : result.code,
+			wrongActions: result.progress.wrongActions,
+		});
+	}
+
+	if (state === "RUNNING" && requiredActionsSatisfied(progress)) {
+		mttrTicks = 0;
+		const resolved = transition("RUNNING", "RESOLVED", {
+			tick: 0,
+			maxTicks,
+			validationPassed: true,
+			requiredActionsSatisfied: true,
+		});
+		if (resolved.ok) {
+			state = "RESOLVED";
+			log.push({
+				kind: "state",
+				tick: 0,
+				from: "RUNNING",
+				to: "RESOLVED",
+				code: null,
+				reason: null,
+			});
+		}
+	}
+
 	for (let tick = 1; tick <= maxTicks && state === "RUNNING"; tick += 1) {
 		progress = { ...progress, tick };
 
